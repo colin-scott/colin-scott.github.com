@@ -7,7 +7,7 @@ categories:
 ---
 
 In 2010, Jeff Dean gave a [talk](http://goo.gl/0MznW) that laid out
-list of [numbers](https://gist.github.com/2843375) every programmer
+a list of [numbers](https://gist.github.com/2843375) every programmer
 should know. His list has since become relatively well known among the systems community.
 
 The other day, a friend mentioned a latency number to me, and I realized that
@@ -27,7 +27,8 @@ is.
 
 #### Footnotes
 
-[1] Jeff's numbers came from a [article](http://norvig.com/21-days.html#answers) by Peter Norvig in 2001.
+[1] Jeff's numbers are from 2001, and were first publicized by Peter Norvig in this
+[article](http://norvig.com/21-days.html#answers).
 
 [2] Layout stolen directly from [ayshen](https://github.com/ayshen) on GitHub.
 
