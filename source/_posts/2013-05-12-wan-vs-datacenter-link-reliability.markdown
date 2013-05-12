@@ -20,8 +20,8 @@ This translates to roughly three and a half 9's of reliability, an order of magn
 than WAN links.
 
 Intuitively this makes sense. WAN links are much more prone to
-[drunken hunters, wild dogs](http://www.cs.cornell.edu/projects/ladis2009/talks/dean-keynote-ladis2009.pdf)
-and the like than links within a [secure](http://www.wired.com/wiredenterprise/2012/10/data-center-easter-eggs/) datacenter.
+[drunken hunters, bulldozers, wild dogs,](http://www.cs.cornell.edu/projects/ladis2009/talks/dean-keynote-ladis2009.pdf)
+[ships dropping anchor](http://www.zetatalk.com/newsletr/issue284.htm) and the like than links within a [secure](http://www.wired.com/wiredenterprise/2012/10/data-center-easter-eggs/) datacenter.
 
 #### Footnotes
 
