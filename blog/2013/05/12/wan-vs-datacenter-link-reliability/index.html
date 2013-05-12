@@ -5,7 +5,7 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Latency Trends - Rest for the Wicked</title>
+  <title>WAN vs. Datacenter Link Reliability - Rest for the Wicked</title>
   <meta name="author" content="Colin Scott">
 
   
@@ -19,7 +19,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://colin-scott.github.com/blog/2012/12/24/latency-trends">
+  <link rel="canonical" href="http://colin-scott.github.com/blog/2013/05/12/wan-vs-datacenter-link-reliability">
   <link href="http://cryptm.org/~hpb/images/C.favicon.ico" rel="icon">
   <link href="http://bootswatch.com/simplex/bootstrap.min.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/stylesheets/bootstrap/responsive.css" media="screen, projection" rel="stylesheet" type="text/css">
@@ -115,7 +115,7 @@
   
   <header class="page-header">
     
-      <h1 class="entry-title">Latency Trends</h1>
+      <h1 class="entry-title">WAN vs. Datacenter Link Reliability</h1>
     
     
       <p class="meta">
@@ -131,7 +131,7 @@
   
 
 
-<time datetime="2012-12-24T15:20:00-08:00" pubdate data-updated="true">Dec 24<span>th</span>, 2012</time>
+<time datetime="2013-05-12T15:46:00-07:00" pubdate data-updated="true">May 12<span>th</span>, 2013</time>
         
          | <a href="#disqus_thread">Comments</a>
         
@@ -140,35 +140,30 @@
   </header>
 
 
-<div class="entry-content"><p>In 2010, Jeff Dean gave a <a href="http://goo.gl/0MznW">talk</a> that laid out
-a list of <a href="https://gist.github.com/2843375">numbers</a> every programmer
-should know. His list has since become relatively well known among the systems community.</p>
+<div class="entry-content"><p>According to a study by Turner et al. [1], wide area network links have an
+average of 1.2 to 2.7 days of downtime per year. This translates to roughly
+two and a half 9&#8217;s of reliability [2].</p>
 
-<p>The other day, a friend mentioned a latency number to me, and I realized that
-it was an order of magnitude smaller than what I had memorized from
-Jeff&#8217;s talk. The problem, of course, is that hardware performance increases
-exponentially! After some digging, I actually found that the numbers Jeff
-quotes are over a decade old [1].</p>
+<p>I was curious how this compared to datacenter links, so I took a look at Gill
+et. al&#8217;s paper [3] on datacenter network failures at Microsoft. Unfortunately some
+of the data has been redacted, but I was able to reverse engineer the mean
+link downtime per year with the help of <a href="http://www.eecs.berkeley.edu/~apanda/">Aurojit Panda&#8217;s</a>
+<a href="https://github.com/apanda/svg-points">svg-to-points</a> converter. The results
+are interesting: out of all links types, the average downtime was 0.3 days.
+This translates to roughly three and a half 9&#8217;s of reliability, an order of magnitude greater
+than WAN links.</p>
 
-<p>Partly inspired by my officemate <a href="http://www.eecs.berkeley.edu/~apanda/">Aurojit Panda</a>, who is collecting
-awesome <a href="http://www.eecs.berkeley.edu/~rcs/research/hw_trends.xlsx">data</a> on
-hardware performance, I decided to write a little tool [2] to visualize Jeff&#8217;s
-numbers as a function of time [3].</p>
-
-<p>Without further ado,
-<a href="http://www.eecs.berkeley.edu/~rcs/research/interactive_latency.html">here</a> it
-is.</p>
+<p>Intuitively this makes sense. WAN links are much more prone to
+<a href="http://www.cs.cornell.edu/projects/ladis2009/talks/dean-keynote-ladis2009.pdf">drunken hunters, wild dogs</a>
+and the like than links within a <a href="http://www.wired.com/wiredenterprise/2012/10/data-center-easter-eggs/">secure</a> datacenter.</p>
 
 <h4>Footnotes</h4>
 
-<p>[1] Jeff&#8217;s numbers are from 2001, and were first publicized by Peter Norvig in this
-<a href="http://norvig.com/21-days.html#answers">article</a>.</p>
+<p>[1] Daniel Turner, Kirill Levchenko, Alex C. Snoeren, and Stefan Savage. California Fault Lines: Understanding the Causes and Impact of Network Failures, Table 4. SIGCOMM &#8216;10.</p>
 
-<p>[2] Layout stolen directly from <a href="https://github.com/ayshen">ayshen</a> on GitHub.</p>
+<p>[2] Note that this statistic is specifically about hardware failure, not overall network availability.</p>
 
-<p>[3] The hardware trends I&#8217;ve gathered are rough estimates. If you want to tweak
-the parameters yourself, I&#8217;ve made it really easy to do so &#8211; please send me
-updates! Better yet, issue a <a href="https://github.com/colin-scott/interactive_latencies">pull request</a>.</p>
+<p>[3] Phillipa Gill, Navendu Jain, Nachiappan Nagappan. Understanding Network Failures in Data Centers: Measurement, Analysis, and Implications, Figures 8c &amp; 9c. SIGCOMM &#8216;11</p>
 </div>
 
 
@@ -191,7 +186,7 @@ updates! Better yet, issue a <a href="https://github.com/colin-scott/interactive
   
 
 
-<time datetime="2012-12-24T15:20:00-08:00" pubdate data-updated="true">Dec 24<span>th</span>, 2012</time>
+<time datetime="2013-05-12T15:46:00-07:00" pubdate data-updated="true">May 12<span>th</span>, 2013</time>
       
 
 
@@ -199,7 +194,7 @@ updates! Better yet, issue a <a href="https://github.com/colin-scott/interactive
     
       <div class="sharing">
   
-  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://colin-scott.github.com/blog/2012/12/24/latency-trends/" data-via="_colin_scott_" data-counturl="http://colin-scott.github.com/blog/2012/12/24/latency-trends/" >Tweet</a>
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://colin-scott.github.com/blog/2013/05/12/wan-vs-datacenter-link-reliability/" data-via="_colin_scott_" data-counturl="http://colin-scott.github.com/blog/2013/05/12/wan-vs-datacenter-link-reliability/" >Tweet</a>
   
   
   
@@ -216,14 +211,10 @@ updates! Better yet, issue a <a href="https://github.com/colin-scott/interactive
     <ul class="pager">
       
       <li class="previous"><a class="basic-alignment left"
-        href="/blog/2012/10/28/7-ways-to-deal-with-ordering-bugs-in-distributed-systems/" title="Previous Post:
-        7 ways to handle concurrency in distributed systems">&laquo; 7 ways to handle concurrency in distributed systems</a></li>
+        href="/blog/2012/12/24/latency-trends/" title="Previous Post:
+        Latency Trends">&laquo; Latency Trends</a></li>
       
       <li><a href="/blog/archives">Blog Archives</a></li>
-      
-      <li class="next"><a class="basic-alignment right" href="/blog/2013/05/12/wan-vs-datacenter-link-reliability/"
-        title="Next Post: WAN vs. Datacenter Link Reliability">WAN vs. Datacenter Link Reliability
-        &raquo;</a></li>
       
     </ul>
   </footer>
@@ -312,8 +303,8 @@ updates! Better yet, issue a <a href="https://github.com/colin-scott/interactive
       
         
         // var disqus_developer = 1;
-        var disqus_identifier = 'http://colin-scott.github.com/blog/2012/12/24/latency-trends/';
-        var disqus_url = 'http://colin-scott.github.com/blog/2012/12/24/latency-trends/';
+        var disqus_identifier = 'http://colin-scott.github.com/blog/2013/05/12/wan-vs-datacenter-link-reliability/';
+        var disqus_url = 'http://colin-scott.github.com/blog/2013/05/12/wan-vs-datacenter-link-reliability/';
         var disqus_script = 'embed.js';
       
     (function () {
