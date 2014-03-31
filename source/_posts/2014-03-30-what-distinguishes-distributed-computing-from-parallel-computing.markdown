@@ -39,7 +39,7 @@ is indistinguishable from a crashed node.
 
 Let's discuss these two properties separately.
 
-== Asynchrony ==
+### Asynchrony
 
 Parallel systems also exhibit asynchrony, as long it's possible for
 there to be a delay between one process sending a message [2]
@@ -72,16 +72,16 @@ therefore break in a distributed setting,
 but I don't think this is really the distinction we're looking
 for.
 
-== Partial Failure ==
+### Partial Failure
 
 Designers of distributed algorithms codify their assumptions
-about the possible ways nodes can fail by specifying a `failure model`. Failure models might describe
+about the possible ways nodes can fail by specifying a 'failure model'. Failure models might describe
 how many nodes can fail---for example, quorum-based algorithms assume that no more
 than N/2 nodes ever fail, otherwise they cannot make progress---or they might
 spell out how individual crashed nodes behave. The latter constraint forms a
-hierarchy, where weaker failure models (e.g. `fail-stop`, where crashed nodes are guaranteed to never
+hierarchy, where weaker failure models (e.g. 'fail-stop', where crashed nodes are guaranteed to never
 send messages again) can be reduced to special cases of stronger models (e.g.
-`Byzantine`, where faulty nodes can behave arbitrarily, even possibly
+'Byzantine', where faulty nodes can behave arbitrarily, even possibly
 mimicking the behavior of correct nodes) [4].
 
 Throughout the Jepsen series, Aphyr tests distributed systems by (i) telling
@@ -101,7 +101,7 @@ equivalent to an asynchronous parallel system. But if any nodes in the
 distributed system actually fail, we're no longer equivalent to a parallel
 system.
 
-== Who cares? ==
+### Who cares?
 
 This discussion might sound like academic hairsplitting, but I claim that
 these distinctions have practical implications.
@@ -143,7 +143,7 @@ vote and decide within two rounds.
 
 [4] See Ali Ghodsi's excellent [slides](http://www.cs.berkeley.edu/~alig/cs294-91/events-links.pptx) for a taxonomy of these failure models.
 
-[5] Note that this is not equivalent to `crash-recovery`. Crash-recovery is
+[5] Note that this is not equivalent to 'crash-recovery'. Crash-recovery is
 actually stronger than fail-stop, because nodes *may* recover or they may
 not.
 
