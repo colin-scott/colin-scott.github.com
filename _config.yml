@@ -2,13 +2,13 @@
 #      Main Configs       #
 # ----------------------- #
 
-url: http://colin-scott.github.com
+url: http://colin-scott.github.io
 title: Rest for the Wicked
-subtitle: Thoughts on software-defined networking
+subtitle: Thoughts on networked systems
 author: Colin Scott
 simple_search: http://google.com/search
-description: "Thoughts on software-defined networking"
-keywords: SDN, software-defined networking, troubleshooting, Berkeley, Colin Scott, Scott Shenker
+description: "Thoughts on distributed systems"
+keywords: SDN, software-defined networking, distributed systems, troubleshooting, Berkeley, Colin Scott, Scott Shenker
 
 # Default date format is "ordinal" (resulting in "July 22nd 2007")
 # You can customize the format as defined in
