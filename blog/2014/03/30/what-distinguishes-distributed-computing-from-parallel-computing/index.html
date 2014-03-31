@@ -140,10 +140,10 @@
   </header>
 
 
-<div class="entry-content"><p>This weekend I came across a <a href="http://aphyr.com/posts/285-call-me-maybe-riak">statement</a> in <a href="https://twitter.com/aphyr">Aphyr&rsquo;s</a> excellent
+<div class="entry-content"><p>I recently came across a <a href="http://aphyr.com/posts/285-call-me-maybe-riak">statement</a> in <a href="https://twitter.com/aphyr">Aphyr&rsquo;s</a> excellent
 <a href="http://aphyr.com/tags/jepsen">Jepsen</a> blog series that caught my eye:</p>
 
-<p>   &ldquo;In a very real sense, [network] partitions are just really big windows of concurrency.&rdquo;</p>
+<blockquote><p>&ldquo;In a very real sense, [network] partitions are just really big windows of concurrency.&rdquo;</p></blockquote>
 
 <p>This statement seems to imply that distributed systems are &ldquo;equivalent&rdquo;
 to parallel (single-machine) computing systems, for the following reason: partitions,
@@ -193,13 +193,13 @@ might simultaneously issue writes to the same piece of state. But if you
 think about it, the entire execution is a &ldquo;big window of
 concurrency&rdquo; in this sense, regardless of whether the database replicas are partitioned.
 By &ldquo;big windows of concurrency&rdquo; I think Aphyr was really talking about <em>asynchrony</em> (or more
-precisely, periods of high message delivery times),
+precisely, periods of high message delivery delays),
 since network partitions are hard to deal with precisely because the messages
 between replicas aren&rsquo;t deliverable until after the partition is recovered:
-when replicas can&rsquo;t coordinate, it becomes challenging (or impossible, if the system chooses to enforce linearizability)
+when replicas can&rsquo;t coordinate, it&rsquo;s challenging (or impossible, if the system chooses to enforce linearizability)
 for them to correctly process those concurrent writes. Amending Aphyr&rsquo;s statement then:</p>
 
-<p>   &ldquo;In a very real sense, partitions are just really big windows of asynchrony.&rdquo;</p>
+<blockquote><p>&ldquo;Network partitions are just really big windows of asynchrony.&rdquo;</p></blockquote>
 
 <p>Does this amendment resolve our quandary? Someone could
 rightly point out that because partitions don&rsquo;t really occur within a single chip,
@@ -214,8 +214,8 @@ for.</p>
 
 <p>Designers of distributed algorithms codify their assumptions
 about the possible ways nodes can fail by specifying a &lsquo;failure model&rsquo;. Failure models might describe
-how many nodes can fail&mdash;-for example, quorum-based algorithms assume that no more
-than N/2 nodes ever fail, otherwise they cannot make progress&mdash;-or they might
+how many nodes can fail&mdash;for example, quorum-based algorithms assume that no more
+than N/2 nodes ever fail, otherwise they cannot make progress&mdash;or they might
 spell out how individual crashed nodes behave. The latter constraint forms a
 hierarchy, where weaker failure models (e.g. &lsquo;fail-stop&rsquo;, where crashed nodes are guaranteed to never
 send messages again) can be reduced to special cases of stronger models (e.g.
@@ -229,7 +229,7 @@ never actually kills replicas! This failure model is actually weaker than fail-s
 since nodes are guaranteed to eventually resume sending messages [5].
 Aphyr&rsquo;s statement is beginning to make sense:</p>
 
-<p>   &ldquo;In a very real sense, network partitions that are followed by network recovery are just really big windows of asynchrony.&rdquo;</p>
+<blockquote><p>&ldquo;Network partitions that are followed by network recovery are just really big windows of asynchrony.&rdquo;</p></blockquote>
 
 <p>This statement is true; from the perspective of a node in the system, a network partition followed by a network recovery
 is indistinguishable from a random spike in message delays, or peer nodes that
