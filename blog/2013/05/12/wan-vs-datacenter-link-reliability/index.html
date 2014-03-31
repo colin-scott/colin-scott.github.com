@@ -142,15 +142,15 @@
 
 <div class="entry-content"><p>According to a study by Turner et al. [1], wide area network links have an
 average of 1.2 to 2.7 days of downtime per year. This translates to roughly
-two and a half 9&#8217;s of reliability [2].</p>
+two and a half 9&rsquo;s of reliability [2].</p>
 
 <p>I was curious how this compared to datacenter links, so I took a look at Gill
-et. al&#8217;s paper [3] on datacenter network failures at Microsoft. Unfortunately some
+et. al&rsquo;s paper [3] on datacenter network failures at Microsoft. Unfortunately some
 of the data has been redacted, but I was able to reverse engineer the mean
-link downtime per year with the help of <a href="http://www.eecs.berkeley.edu/~apanda/">Aurojit Panda&#8217;s</a>
+link downtime per year with the help of <a href="http://www.eecs.berkeley.edu/~apanda/">Aurojit Panda&rsquo;s</a>
 <a href="https://github.com/apanda/svg-points">svg-to-points</a> converter. The results
 are interesting: out of all links types, the average downtime was 0.3 days.
-This translates to roughly three and a half 9&#8217;s of reliability, an order of magnitude greater
+This translates to roughly three and a half 9&rsquo;s of reliability, an order of magnitude greater
 than WAN links.</p>
 
 <p>Intuitively this makes sense. WAN links are much more prone to
@@ -159,11 +159,11 @@ than WAN links.</p>
 
 <h4>Footnotes</h4>
 
-<p>[1] Daniel Turner, Kirill Levchenko, Alex C. Snoeren, and Stefan Savage. California Fault Lines: Understanding the Causes and Impact of Network Failures, Table 4. SIGCOMM &#8216;10.</p>
+<p>[1] Daniel Turner, Kirill Levchenko, Alex C. Snoeren, and Stefan Savage. California Fault Lines: Understanding the Causes and Impact of Network Failures, Table 4. SIGCOMM &lsquo;10.</p>
 
 <p>[2] Note that this statistic is specifically about hardware failure, not overall network availability.</p>
 
-<p>[3] Phillipa Gill, Navendu Jain, Nachiappan Nagappan. Understanding Network Failures in Data Centers: Measurement, Analysis, and Implications, Figures 8c &amp; 9c. SIGCOMM &#8216;11</p>
+<p>[3] Phillipa Gill, Navendu Jain, Nachiappan Nagappan. Understanding Network Failures in Data Centers: Measurement, Analysis, and Implications, Figures 8c &amp; 9c. SIGCOMM &lsquo;11</p>
 </div>
 
 
@@ -216,6 +216,10 @@ than WAN links.</p>
       
       <li><a href="/blog/archives">Blog Archives</a></li>
       
+      <li class="next"><a class="basic-alignment right" href="/blog/2014/03/30/what-distinguishes-distributed-computing-from-parallel-computing/"
+        title="Next Post: What Distinguishes Distributed Computing From Parallel Computing?">What Distinguishes Distributed Computing From Parallel Computing?
+        &raquo;</a></li>
+      
     </ul>
   </footer>
 </article>
@@ -225,6 +229,10 @@ than WAN links.</p>
     <section class="well">
   <ul id="recent_posts" class="nav nav-list">
     <li class="nav-header">Recent Posts</li>
+    
+      <li class="post">
+        <a href="/blog/2014/03/30/what-distinguishes-distributed-computing-from-parallel-computing/">What Distinguishes Distributed Computing From Parallel Computing?</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2013/05/12/wan-vs-datacenter-link-reliability/">WAN vs. Datacenter Link Reliability</a>
@@ -263,23 +271,6 @@ than WAN links.</p>
 </section>
 
 
-<section class="well">
-  <ul id="tweets" class="nav">
-    <li class="nav-header">Twitter</li>
-    <li class="loading">Status updating...</li>
-  </ul>
-  <script type="text/javascript">
-    $(document).ready(function(){
-      getTwitterFeed("_colin_scott_", 0, false);
-    });
-  </script>
-  <script src="/javascripts/asides/twitter.js" type="text/javascript"> </script>
-  
-    <a href="http://twitter.com/_colin_scott_" class="twitter-follow-button" data-show-count="false">Follow @_colin_scott_</a>
-  
-</section>
-
-
 
 
 
@@ -291,7 +282,7 @@ than WAN links.</p>
   </div>
   <footer role="contentinfo" class="page-footer"><hr>
 <p>
-  Copyright &copy; 2013 - Colin Scott -
+  Copyright &copy; 2014 - Colin Scott -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
 </p>
 

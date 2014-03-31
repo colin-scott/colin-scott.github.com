@@ -4,7 +4,7 @@
   <title><![CDATA[Rest for the Wicked]]></title>
   <link href="http://colin-scott.github.com/atom.xml" rel="self"/>
   <link href="http://colin-scott.github.com/"/>
-  <updated>2013-08-06T21:46:27-07:00</updated>
+  <updated>2014-03-31T10:17:48-07:00</updated>
   <id>http://colin-scott.github.com/</id>
   <author>
     <name><![CDATA[Colin Scott]]></name>
@@ -14,21 +14,175 @@
 
   
   <entry>
+    <title type="html"><![CDATA[What Distinguishes Distributed Computing From Parallel Computing?]]></title>
+    <link href="http://colin-scott.github.com/blog/2014/03/30/what-distinguishes-distributed-computing-from-parallel-computing/"/>
+    <updated>2014-03-30T11:29:00-07:00</updated>
+    <id>http://colin-scott.github.com/blog/2014/03/30/what-distinguishes-distributed-computing-from-parallel-computing</id>
+    <content type="html"><![CDATA[<p>This weekend I came across a <a href="http://aphyr.com/posts/285-call-me-maybe-riak">statement</a> in <a href="https://twitter.com/aphyr">Aphyr&rsquo;s</a> excellent
+<a href="http://aphyr.com/tags/jepsen">Jepsen</a> blog series that caught my eye:</p>
+
+<p>   &ldquo;In a very real sense, [network] partitions are just really big windows of concurrency.&rdquo;</p>
+
+<p>This statement seems to imply that distributed systems are &ldquo;equivalent&rdquo;
+to parallel (single-machine) computing systems, for the following reason: partitions,
+which occur in a network but don&rsquo;t really occur on a single chip, appear to be the key
+distinguishing property of distributed systems. But if partitions are just a
+special case of concurrency, then there shouldn&rsquo;t be any fundamental reasons
+why algorithms for multicore chips wouldn&rsquo;t be perfectly suitable for solving all the
+problems we might encounter in a distributed setting.
+We know this to be false,
+so I&rsquo;ve been trying to puzzle out precisely what
+properties of distributed computing distinguish it from parallel computing
+[1].</p>
+
+<p>I&rsquo;ve been taught that distributed systems have two crucial features:</p>
+
+<ul>
+<li>Asynchrony, or &ldquo;absence of synchrony&rdquo;: messages from one process to another
+do not arrive immediately. In a fully asynchronous system, messages may be
+delayed for unbounded periods of time.</li>
+<li>Partial failure: some processes in the system may fail while other processes
+continue executing.</li>
+</ul>
+
+
+<!--
+Observe that in a loose sense, network partitions are a form of partial failure,
+because from the perspective of the other nodes in the system, a partitioned node
+is indistinguishable from a crashed node.
+-->
+
+
+<p>Let&rsquo;s discuss these two properties separately.</p>
+
+<h3>Asynchrony</h3>
+
+<p>Parallel systems also exhibit asynchrony, as long it&rsquo;s possible for
+there to be a delay between one process sending a message [2]
+and the other processes having the opportunity to read that message. Even on a single
+machine, this delay might be induced by locks within the operating system kernel,
+or by the cache coherence protocol implemented in hardware on a multicore chip.</p>
+
+<p>With this in mind, let&rsquo;s return to Aphyr&rsquo;s statement.
+What exactly did he mean by &ldquo;big windows of concurrency&rdquo;?
+His article focuses on what happens when multiple clients write to the same
+database key, so by &ldquo;concurrency&rdquo; I think he is referring to situations where multiple processes
+might simultaneously issue writes to the same piece of state. But if you
+think about it, the entire execution is a &ldquo;big window of
+concurrency&rdquo; in this sense, regardless of whether the database replicas are partitioned.
+By &ldquo;big windows of concurrency&rdquo; I think Aphyr was really talking about <em>asynchrony</em> (or more
+precisely, periods of high message delivery times),
+since network partitions are hard to deal with precisely because the messages
+between replicas aren&rsquo;t deliverable until after the partition is recovered:
+when replicas can&rsquo;t coordinate, it becomes challenging (or impossible, if the system chooses to enforce linearizability)
+for them to correctly process those concurrent writes. Amending Aphyr&rsquo;s statement then:</p>
+
+<p>   &ldquo;In a very real sense, partitions are just really big windows of asynchrony.&rdquo;</p>
+
+<p>Does this amendment resolve our quandary? Someone could
+rightly point out that because partitions don&rsquo;t really occur within a single chip,
+parallel systems can effectively provide guarantees on how long message
+delays can last [3], whereas partitions in distributed systems may last
+arbitrarily long. Some algorithms designed for parallel computers might
+therefore break in a distributed setting,
+but I don&rsquo;t think this is really the distinction we&rsquo;re looking
+for.</p>
+
+<h3>Partial Failure</h3>
+
+<p>Designers of distributed algorithms codify their assumptions
+about the possible ways nodes can fail by specifying a &lsquo;failure model&rsquo;. Failure models might describe
+how many nodes can fail&mdash;-for example, quorum-based algorithms assume that no more
+than N/2 nodes ever fail, otherwise they cannot make progress&mdash;-or they might
+spell out how individual crashed nodes behave. The latter constraint forms a
+hierarchy, where weaker failure models (e.g. &lsquo;fail-stop&rsquo;, where crashed nodes are guaranteed to never
+send messages again) can be reduced to special cases of stronger models (e.g.
+&lsquo;Byzantine&rsquo;, where faulty nodes can behave arbitrarily, even possibly
+mimicking the behavior of correct nodes) [4].</p>
+
+<p>Throughout the Jepsen series, Aphyr tests distributed systems by (i) telling
+clients to issue concurrent writes, (ii) inducing a network partition between
+database replicas, and (iii) recovering the partition. Observe that Jepsen
+never actually kills replicas! This failure model is actually weaker than fail-stop,
+since nodes are guaranteed to eventually resume sending messages [5].
+Aphyr&rsquo;s statement is beginning to make sense:</p>
+
+<p>   &ldquo;In a very real sense, network partitions that are followed by network recovery are just really big windows of asynchrony.&rdquo;</p>
+
+<p>This statement is true; from the perspective of a node in the system, a network partition followed by a network recovery
+is indistinguishable from a random spike in message delays, or peer nodes that
+are just very slow to respond. In other words, a distributed system that
+guarantees that messages will eventually be deliverable to all nodes is
+equivalent to an asynchronous parallel system. But if any nodes in the
+distributed system actually fail, we&rsquo;re no longer equivalent to a parallel
+system.</p>
+
+<h3>Who cares?</h3>
+
+<p>This discussion might sound like academic hairsplitting, but I claim that
+these distinctions have practical implications.</p>
+
+<p>As an example, let&rsquo;s imagine that you need to make a choice between shared memory
+versus message passing as the communication model for the shiny new distributed
+system you&rsquo;re designing. If you come from a parallel computing background you
+would know that message passing is actually equivalent to shared memory, in
+the sense that you can use a message passing abstraction to implement
+shared memory, and vice versa. You might therefore conclude that you
+are free to choose whichever abstraction is more convenient or performant for
+your distributed system. If you jumped to this conclusion you might end up
+making your system more fragile without realizing it.
+Message passing is not equivalent to shared memory in distributed systems [6],
+precisely because distributed systems exhibit <em>partial failures</em>;
+in order to correctly implement shared memory in a distributed system it must
+always be possible to coordinate with a quorum, or
+otherwise be able to accurately detect which nodes have failed. Message
+passing does not have this limitation.</p>
+
+<p>Another takeaway from this discussion is that Jepsen is actually testing a
+fairly weak failure mode. Despite Jepsen&rsquo;s simplicity though, Aphyr has managed to uncover problems in
+an impressive number of distributed databases. If we want to uncover yet more implicit assumptions
+about how our systems behave, stronger failure modes seem like an
+excellent place to look.</p>
+
+<hr />
+
+<p>[1] Thanks to <a href="http://www.cs.berkeley.edu/~alig/">Ali Ghodsi</a> for helping me tease out the differences between these properties.</p>
+
+<p>[2] or writing to shared memory, which is essentially the same as sending a
+message.</p>
+
+<p>[3] See, for example, PRAM or BSP, which assume that every node can
+communicate with every other node within each &ldquo;round&rdquo;. It&rsquo;s trivial to solve
+<a href="http://groups.csail.mit.edu/tds/papers/Lynch/pods83-flp.pdf">hard</a> problems like
+consensus in this world, because you can always just take a majority
+vote and decide within two rounds.</p>
+
+<p>[4] See Ali Ghodsi&rsquo;s excellent <a href="http://www.cs.berkeley.edu/~alig/cs294-91/events-links.pptx">slides</a> for a taxonomy of these failure models.</p>
+
+<p>[5] Note that this is not equivalent to &lsquo;crash-recovery&rsquo;. Crash-recovery is
+actually stronger than fail-stop, because nodes <em>may</em> recover or they may
+not.</p>
+
+<p>[6] Nancy Lynch, &ldquo;Distributed Algorithms&rdquo;, Morgan Kaufmann, 1996.</p>
+]]></content>
+  </entry>
+  
+  <entry>
     <title type="html"><![CDATA[WAN vs. Datacenter Link Reliability]]></title>
     <link href="http://colin-scott.github.com/blog/2013/05/12/wan-vs-datacenter-link-reliability/"/>
     <updated>2013-05-12T15:46:00-07:00</updated>
     <id>http://colin-scott.github.com/blog/2013/05/12/wan-vs-datacenter-link-reliability</id>
     <content type="html"><![CDATA[<p>According to a study by Turner et al. [1], wide area network links have an
 average of 1.2 to 2.7 days of downtime per year. This translates to roughly
-two and a half 9&#8217;s of reliability [2].</p>
+two and a half 9&rsquo;s of reliability [2].</p>
 
 <p>I was curious how this compared to datacenter links, so I took a look at Gill
-et. al&#8217;s paper [3] on datacenter network failures at Microsoft. Unfortunately some
+et. al&rsquo;s paper [3] on datacenter network failures at Microsoft. Unfortunately some
 of the data has been redacted, but I was able to reverse engineer the mean
-link downtime per year with the help of <a href="http://www.eecs.berkeley.edu/~apanda/">Aurojit Panda&#8217;s</a>
+link downtime per year with the help of <a href="http://www.eecs.berkeley.edu/~apanda/">Aurojit Panda&rsquo;s</a>
 <a href="https://github.com/apanda/svg-points">svg-to-points</a> converter. The results
 are interesting: out of all links types, the average downtime was 0.3 days.
-This translates to roughly three and a half 9&#8217;s of reliability, an order of magnitude greater
+This translates to roughly three and a half 9&rsquo;s of reliability, an order of magnitude greater
 than WAN links.</p>
 
 <p>Intuitively this makes sense. WAN links are much more prone to
@@ -37,11 +191,11 @@ than WAN links.</p>
 
 <h4>Footnotes</h4>
 
-<p>[1] Daniel Turner, Kirill Levchenko, Alex C. Snoeren, and Stefan Savage. California Fault Lines: Understanding the Causes and Impact of Network Failures, Table 4. SIGCOMM &#8216;10.</p>
+<p>[1] Daniel Turner, Kirill Levchenko, Alex C. Snoeren, and Stefan Savage. California Fault Lines: Understanding the Causes and Impact of Network Failures, Table 4. SIGCOMM &lsquo;10.</p>
 
 <p>[2] Note that this statistic is specifically about hardware failure, not overall network availability.</p>
 
-<p>[3] Phillipa Gill, Navendu Jain, Nachiappan Nagappan. Understanding Network Failures in Data Centers: Measurement, Analysis, and Implications, Figures 8c &amp; 9c. SIGCOMM &#8216;11</p>
+<p>[3] Phillipa Gill, Navendu Jain, Nachiappan Nagappan. Understanding Network Failures in Data Centers: Measurement, Analysis, and Implications, Figures 8c &amp; 9c. SIGCOMM &lsquo;11</p>
 ]]></content>
   </entry>
   
@@ -56,13 +210,13 @@ should know. His list has since become relatively well known among the systems c
 
 <p>The other day, a friend mentioned a latency number to me, and I realized that
 it was an order of magnitude smaller than what I had memorized from
-Jeff&#8217;s talk. The problem, of course, is that hardware performance increases
+Jeff&rsquo;s talk. The problem, of course, is that hardware performance increases
 exponentially! After some digging, I actually found that the numbers Jeff
 quotes are over a decade old [1].</p>
 
 <p>Partly inspired by my officemate <a href="http://www.eecs.berkeley.edu/~apanda/">Aurojit Panda</a>, who is collecting
 awesome <a href="http://www.eecs.berkeley.edu/~rcs/research/hw_trends.xlsx">data</a> on
-hardware performance, I decided to write a little tool [2] to visualize Jeff&#8217;s
+hardware performance, I decided to write a little tool [2] to visualize Jeff&rsquo;s
 numbers as a function of time [3].</p>
 
 <p>Without further ado,
@@ -71,13 +225,13 @@ is.</p>
 
 <h4>Footnotes</h4>
 
-<p>[1] Jeff&#8217;s numbers are from 2001, and were first publicized by Peter Norvig in this
+<p>[1] Jeff&rsquo;s numbers are from 2001, and were first publicized by Peter Norvig in this
 <a href="http://norvig.com/21-days.html#answers">article</a>.</p>
 
 <p>[2] Layout stolen directly from <a href="https://github.com/ayshen">ayshen</a> on GitHub.</p>
 
-<p>[3] The hardware trends I&#8217;ve gathered are rough estimates. If you want to tweak
-the parameters yourself, I&#8217;ve made it really easy to do so &#8211; please send me
+<p>[3] The hardware trends I&rsquo;ve gathered are rough estimates. If you want to tweak
+the parameters yourself, I&rsquo;ve made it really easy to do so &mdash; please send me
 updates! Better yet, issue a <a href="https://github.com/colin-scott/interactive_latencies">pull request</a>.</p>
 ]]></content>
   </entry>
@@ -95,21 +249,21 @@ arises from two properties in particular:</p>
 
 <ul>
 <li><p>Limited knowledge: each node knows its own state, and it knows what state
-the other nodes were in recently, but it can&#8217;t know their current state.</p></li>
+the other nodes were in recently, but it can&rsquo;t know their current state.</p></li>
 <li><p>(Partial) failures: individual nodes can fail at any time, and the network can delay or drop
 messages arbitrarily.</p></li>
 </ul>
 
 
-<p>Why are these properties difficult to grapple with? Suppose you&#8217;re writing
-code for a single node. You&#8217;re deep in a nested conditional statement, and you
+<p>Why are these properties difficult to grapple with? Suppose you&rsquo;re writing
+code for a single node. You&rsquo;re deep in a nested conditional statement, and you
 need to deal with a message arrival. How do you react? What if the message
-you&#8217;re seeing was actually delayed by the network and is no longer relevant? What if some of the nodes you need to coordinate with have
-failed, but you aren&#8217;t aware of it yet? The set of possible event sequences you need to reason about is huge,
-and it&#8217;s all too easy to forget about the one nasty corner case that will
+you&rsquo;re seeing was actually delayed by the network and is no longer relevant? What if some of the nodes you need to coordinate with have
+failed, but you aren&rsquo;t aware of it yet? The set of possible event sequences you need to reason about is huge,
+and it&rsquo;s all too easy to forget about the one nasty corner case that will
 eventually bring your system to a screeching halt.</p>
 
-<p>To make the discussion more concrete, let&#8217;s look at an example.</p>
+<p>To make the discussion more concrete, let&rsquo;s look at an example.</p>
 
 <p><img src="http://www.eecs.berkeley.edu/~rcs/research/example_bug.png"
 alt="Floodlight bug" width=100%></p>
@@ -136,33 +290,33 @@ the switch, but without ever clearing the routing entries for
 the failed link (resulting in a persistent blackhole) [3].</p>
 
 <p>If we take a step back, we see that there are two problems involved:
-leader election (&#8220;Who is the master at any point in time?&#8221;), and
-replication (&#8220;How should the backups behave?&#8221;). Let&#8217;s assume that leader
+leader election (&ldquo;Who is the master at any point in time?&rdquo;), and
+replication (&ldquo;How should the backups behave?&rdquo;). Let&rsquo;s assume that leader
 election is handled by a separate consensus algorithm (<em>e.g.</em>
 Paxos), and focus our attention on replication.</p>
 
 <!-- And atomic commit? -->
 
 
-<p>Now that we have a concrete example to think about, let&#8217;s go over a few
-solutions this problem. The first four share the same philosophy: <em>&#8220;get
-the ordering right&#8221;</em>.</p>
+<p>Now that we have a concrete example to think about, let&rsquo;s go over a few
+solutions this problem. The first four share the same philosophy: <em>&ldquo;get
+the ordering right&rdquo;</em>.</p>
 
 <h3>Take it case-by-case</h3>
 
 <p>The straightforward fix here is to add a conditional statement for this event
-ordering: if you&#8217;re a slave, and the next message is a link failure
+ordering: if you&rsquo;re a slave, and the next message is a link failure
 notification, store the notification in memory in case you become master
 later.</p>
 
 <p>This fix seems easy in retrospect. But recall how the bug came about in the
 first place: the programmer had some set of event orderings in mind when
-writing the code, but didn&#8217;t implement one corner case. How do we know
-there isn&#8217;t another race condition lurking somewhere else in the code? [4]</p>
+writing the code, but didn&rsquo;t implement one corner case. How do we know
+there isn&rsquo;t another race condition lurking somewhere else in the code? [4]</p>
 
 <p>The number of event orderings you need to consider in a distributed system is
-truly huge; it scales combinatorially with the number of nodes you&#8217;re
-communicating with. For the rest of this post, let&#8217;s see if we can avoid the
+truly huge; it scales combinatorially with the number of nodes you&rsquo;re
+communicating with. For the rest of this post, let&rsquo;s see if we can avoid the
 need to reason on a case-by-case basis altogether.</p>
 
 <h3>Replicate the computation</h3>
@@ -175,7 +329,7 @@ inputs to the master, have the master choose a serial order for those events, is
 backup should execute the computation in the exact same order as the master.</p>
 
 <p>For the Floodlight bug, the backup would still need to hold the link failure
-message in memory until it detects that the master has crashed. But we&#8217;ve
+message in memory until it detects that the master has crashed. But we&rsquo;ve
 gained a powerful guarantee over the previous approach: when the backup takes
 over for the master, it will be in a up-to-date state, and know exactly what
 commands it needs to send to the switches to get them into a correct
@@ -203,13 +357,13 @@ not conflict with each other, and we can simply abort and retry the ones
 that do.</li>
 <li>We can now roll back operations. Suppose a network operator issues a
 policy change to the controller, but realizes that she made a mistake.
-No problem &#8211; she can simply roll back the previous transaction and start
+No problem &mdash; she can simply roll back the previous transaction and start
 again where she began.</li>
 </ul>
 
 
 <p>Compared to the first approach, this is a significant improvement! Each
-event is handled in isolation from the other events, so there&#8217;s need to
+event is handled in isolation from the other events, so there&rsquo;s need to
 reason about event interleavings; if a conflicting transaction was
 committed before we get to commit, just abort and retry!</p>
 
@@ -234,7 +388,7 @@ group.</li>
 node will eventually get the message. That implies that if any live
 node ever gets the link failure notification, you can rest assure that
 one of your future masters will get it.</li>
-<li>The <tt>join()</tt> protocol ensures that every node always know who&#8217;s a member of its group,
+<li>The <tt>join()</tt> protocol ensures that every node always know who&rsquo;s a member of its group,
 and that everyone has the same view of who is alive
 and who is not. Failures results in a group change, but everyone will agree on the order in which the failure occured.</li>
 </ul>
@@ -243,27 +397,27 @@ and who is not. Failures results in a group change, but everyone will agree on t
 <p>With virtual synchrony, we no longer need a single master; atomic multicast
 means that there is a single order of events observed by all members of the
 group, regardless of who initiated the message. And with multiple masters, we
-aren&#8217;t constrained by the speed of a single node.</p>
+aren&rsquo;t constrained by the speed of a single node.</p>
 
 <p>The <em>virtual</em> part of virtual synchrony is that when the library detects
 that two operations are not causally related to each other, it can reorder
-them in whatever way it believes most efficient. Since those operations aren&#8217;t
-causally related, we&#8217;re guaranteed that the final output won&#8217;t be noticeably
+them in whatever way it believes most efficient. Since those operations aren&rsquo;t
+causally related, we&rsquo;re guaranteed that the final output won&rsquo;t be noticeably
 different.</p>
 
-<p>OK, let&#8217;s move on to the final three approaches, which take a different tack
-than the first four: <em>&#8220;avoid having to reason about event ordering
-altogether&#8221;</em></p>
+<p>OK, let&rsquo;s move on to the final three approaches, which take a different tack
+than the first four: <em>&ldquo;avoid having to reason about event ordering
+altogether&rdquo;</em></p>
 
 <h3>Make yourself stateless</h3>
 
-<p>In a database, the &#8220;ground truth&#8221; is stored on disk. In a network, the &#8220;ground
-truth&#8221; is stored in the routing tables of the switches themselves. This
+<p>In a database, the &ldquo;ground truth&rdquo; is stored on disk. In a network, the &ldquo;ground
+truth&rdquo; is stored in the routing tables of the switches themselves. This
 implies that the controllers&#8217; view of the network is just soft state; we can
 always recover it simply by querying the switches for their current
 configuration!</p>
 
-<p>How does this observation relate to the Floodlight bug? Suppose we didn&#8217;t even
+<p>How does this observation relate to the Floodlight bug? Suppose we didn&rsquo;t even
 attempt to keep the backup controllers in sync with the master. Instead, just
 have them recompute the entire network configuration whenever they realize
 they need to take over for the master. Their only job in the meantime is to
@@ -274,20 +428,20 @@ monitor the liveness of the master!</p>
 <p>We can apply the same trick to avoid race conditions between concurrent events
 at the master: instead of maintaining locks between threads, just restart
 computation of the entire network configuration whenever a new event comes in.
-Race conditions don&#8217;t happen if there is no shared state!</p>
+Race conditions don&rsquo;t happen if there is no shared state!</p>
 
-<p>Incidentally, Google&#8217;s <a href="http://www.eecs.berkeley.edu/~rcs/research/google-onrc-slides.pdf">wide-area network
+<p>Incidentally, Google&rsquo;s <a href="http://www.eecs.berkeley.edu/~rcs/research/google-onrc-slides.pdf">wide-area network
 controller</a>
 is almost entirely stateless, presumably for many of the same reasons.</p>
 
 <h3>Force yourself to be stateless</h3>
 
 <p>In the spirit stateless computation, why not write your code in a language
-that doesn&#8217;t allow you to keep state at all? Programs written in declarative
+that doesn&rsquo;t allow you to keep state at all? Programs written in declarative
 languages such as <a href="http://p2.berkeley.intel-research.net/">Overlog</a> have no
-explicit ordering whatsoever. Programmers simply declare rules such as &#8220;If the
+explicit ordering whatsoever. Programmers simply declare rules such as &ldquo;If the
 switch has a link failure, then flush the routing entries that go over that
-link&#8221;, and the language runtime handles the order in which the computation
+link&rdquo;, and the language runtime handles the order in which the computation
 is carried out.</p>
 
 <p>With a declarative language, as the long as the same set of events is fed
@@ -313,16 +467,16 @@ benefit, self-stabilizing algorithms are usually considerably simpler than
 their order-aware counterparts.</p>
 
 <p>What do self-stabilizing algorithms look like? Self-stabilizing algorithms are
-actually everywhere in networking &#8211; routing algorithms are the most canonical
+actually everywhere in networking &mdash; routing algorithms are the most canonical
 example.</p>
 
 <p>How would a self-stabilizing algorithm help with the Floodlight bug? The
 answer really depends on what network invariants the control application needs
-to maintain. If it&#8217;s just to provide connectivity [7], we could simply run a
+to maintain. If it&rsquo;s just to provide connectivity [7], we could simply run a
 traditional link-state algorithm: have each switch periodically send port
 status messages to the controllers, have the controllers compute shortest
-paths using Dijkstra&#8217;s, and have the master push the appropriate updates to
-the switches. Even if there are transient failures, we&#8217;re guaranteed that the
+paths using Dijkstra&rsquo;s, and have the master push the appropriate updates to
+the switches. Even if there are transient failures, we&rsquo;re guaranteed that the
 network will eventually converge to a configuration with no loops and
 deadends.</p>
 
@@ -330,13 +484,13 @@ deadends.</p>
 
 <p>Ultimately, the best replication choice depends on your workload and
 network policies. In any case, I hope this post has convinced you that
-there&#8217;s more than one way to skin a cat!</p>
+there&rsquo;s more than one way to skin a cat!</p>
 
 <h4>Footnotes</h4>
 
 <p>[1] Note that this issue was originally discovered by the developers of
-Floodlight. (We don&#8217;t mean to pick on BigSwitch here; we chose this bug
-because it&#8217;s a great example of the difficulties that come up in distributed
+Floodlight. (We don&rsquo;t mean to pick on BigSwitch here; we chose this bug
+because it&rsquo;s a great example of the difficulties that come up in distributed
 systems). For more information, see line 605 of
 <a href="https://github.com/floodlight/floodlight/blob/2e9427e20ede7dc3941f8c15d2348bfcafdce237/src/main/java/net/floodlightcontroller/core/internal/Controller.java">Controller.java</a>.</p>
 
@@ -348,19 +502,19 @@ internally inconsistent routing tables.</p>
 <p>[3] The Floodlight bug noted in [1] actually involves neglecting to clear the
 routing tables of newly connected switches, but the same flavor of race
 condition could occur for link failures. We chose to focus on link failures
-because they&#8217;re likely to occur much more often than switch connects.</p>
+because they&rsquo;re likely to occur much more often than switch connects.</p>
 
-<p>[4] It&#8217;s possible in some cases to use a <a href="http://www.macesystems.org/">model checker</a> to automatically find race conditions, but the runtime complexity is often intractable and very few systems do this in practice.</p>
+<p>[4] It&rsquo;s possible in some cases to use a <a href="http://www.macesystems.org/">model checker</a> to automatically find race conditions, but the runtime complexity is often intractable and very few systems do this in practice.</p>
 
-<p>[5] There are actually a handful of ways to implement state machine replication. Ours depend on a concensus algorithm to choose the master, but you could also run the concensus algorithm itself to achieve replication. There are also cheaper algorithms such as reliable broadcast. You can also get significantly better read throughput with chain replication, which doesn&#8217;t require quorum for reads, but writes become more complicated.</p>
+<p>[5] There are actually a handful of ways to implement state machine replication. Ours depend on a concensus algorithm to choose the master, but you could also run the concensus algorithm itself to achieve replication. There are also cheaper algorithms such as reliable broadcast. You can also get significantly better read throughput with chain replication, which doesn&rsquo;t require quorum for reads, but writes become more complicated.</p>
 
 <p>[6] We still need to maintain the invariant that only the master modifies the
 the switch configurations. Nonetheless, with state machine replication the
 backup will always know what commands need to be sent to switches if and when
 it takes over for the master.</p>
 
-<p>[7] Although if your goal is only to provide connectivity, it&#8217;s <a href="http://networkheresy.com/2011/11/17/is-openflowsdn-good-at-forwarding/">not clear</a>
-why you&#8217;re using SDN in the first place.</p>
+<p>[7] Although if your goal is only to provide connectivity, it&rsquo;s <a href="http://networkheresy.com/2011/11/17/is-openflowsdn-good-at-forwarding/">not clear</a>
+why you&rsquo;re using SDN in the first place.</p>
 ]]></content>
   </entry>
   

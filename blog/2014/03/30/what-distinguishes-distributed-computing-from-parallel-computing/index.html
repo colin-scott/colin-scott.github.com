@@ -1,0 +1,447 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>What Distinguishes Distributed Computing From Parallel Computing? - Rest for the Wicked</title>
+  <meta name="author" content="Colin Scott">
+
+  
+  <meta name="description" content="Thoughts on software-defined networking">
+  
+  <meta name="keywords" content="SDN, software-defined networking, troubleshooting, Berkeley, Colin Scott, Scott Shenker">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://colin-scott.github.com/blog/2014/03/30/what-distinguishes-distributed-computing-from-parallel-computing">
+  <link href="http://cryptm.org/~hpb/images/C.favicon.ico" rel="icon">
+  <link href="/stylesheets/bootstrap/bootstrap.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/bootstrap/responsive.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/syntax/syntax.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <style type="text/css">
+    body {
+      padding-bottom: 40px;
+    }
+    h1 {
+      margin-bottom: 15px;
+    }
+    img {
+      max-width: 100%;
+    }
+    .sharing, .meta, .pager {
+      margin: 20px 0px 20px 0px;
+    }
+    .page-footer p {
+      text-align: center;
+    }
+  </style>
+  <script src="/javascripts/libs/jquery.js"></script>
+  <script src="/javascripts/libs/modernizr-2.0.js"></script>
+  <script src="/javascripts/libs/bootstrap.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <link href="/atom.xml" rel="alternate" title="Rest for the Wicked" type="application/atom+xml">
+  
+  
+
+</head>
+
+<body   >
+  <nav role="navigation"><div class="navbar">
+  <div class="navbar-inner">
+    <div class="container">
+      <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </a>
+
+      <a class="brand" href="/">Rest for the Wicked</a>
+
+      <div class="nav-collapse">
+        <div class="navbar navbar-fixed-top">
+  <div class="navbar-inner">
+    <div class="container">
+      <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </a>
+      <a class="brand" href="http://www.eecs.berkeley.edu/~rcs/index.html">Colin Scott</a>
+      <div class="nav-collapse collapse">
+        <ul class="nav">
+          <li><a href="http://www.eecs.berkeley.edu/~rcs/index.html">Home</a></li>
+          <li><a href="http://www.eecs.berkeley.edu/~rcs/about.html">About</a></li>
+          <li><a href="http://www.eecs.berkeley.edu/~rcs/contact.html">Contact</a></li>
+          <li><a href="http://www.eecs.berkeley.edu/~rcs/publications.html">Publications</a></li>
+          <li class="active"><a href="http://colin-scott.github.com/">Blog</a></li>
+          <li><a href="http://www.eecs.berkeley.edu/~rcs/life.html">Life</a></li>
+          <li><a href="http://colin-scott.github.com/music">Music</a></li>
+        </ul>
+      </div><!--/.nav-collapse -->
+    </div>
+  </div>
+</div>
+
+
+        <ul class="nav pull-right" data-subscription="rss">
+          <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+          
+        </ul>
+
+        
+          <form class="pull-right navbar-search" action="http://google.com/search" method="get">
+            <fieldset role="search">
+              <input type="hidden" name="q" value="site:colin-scott.github.com" />
+              <input class="search-query" type="text" name="q" results="0" placeholder="Search"/>
+            </fieldset>
+          </form>
+        
+      </div>
+    </div>
+  </div>
+</div>
+</nav>
+  <div class="container">
+    <div class="row-fluid">
+      
+<article class="hentry span9" role="article">
+
+  
+  <header class="page-header">
+    
+      <h1 class="entry-title">What Distinguishes Distributed Computing From Parallel Computing?</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-03-30T11:29:00-07:00" pubdate data-updated="true">Mar 30<span>th</span>, 2014</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>This weekend I came across a <a href="http://aphyr.com/posts/285-call-me-maybe-riak">statement</a> in <a href="https://twitter.com/aphyr">Aphyr&rsquo;s</a> excellent
+<a href="http://aphyr.com/tags/jepsen">Jepsen</a> blog series that caught my eye:</p>
+
+<p>   &ldquo;In a very real sense, [network] partitions are just really big windows of concurrency.&rdquo;</p>
+
+<p>This statement seems to imply that distributed systems are &ldquo;equivalent&rdquo;
+to parallel (single-machine) computing systems, for the following reason: partitions,
+which occur in a network but don&rsquo;t really occur on a single chip, appear to be the key
+distinguishing property of distributed systems. But if partitions are just a
+special case of concurrency, then there shouldn&rsquo;t be any fundamental reasons
+why algorithms for multicore chips wouldn&rsquo;t be perfectly suitable for solving all the
+problems we might encounter in a distributed setting.
+We know this to be false,
+so I&rsquo;ve been trying to puzzle out precisely what
+properties of distributed computing distinguish it from parallel computing
+[1].</p>
+
+<p>I&rsquo;ve been taught that distributed systems have two crucial features:</p>
+
+<ul>
+<li>Asynchrony, or &ldquo;absence of synchrony&rdquo;: messages from one process to another
+do not arrive immediately. In a fully asynchronous system, messages may be
+delayed for unbounded periods of time.</li>
+<li>Partial failure: some processes in the system may fail while other processes
+continue executing.</li>
+</ul>
+
+
+<!--
+Observe that in a loose sense, network partitions are a form of partial failure,
+because from the perspective of the other nodes in the system, a partitioned node
+is indistinguishable from a crashed node.
+-->
+
+
+<p>Let&rsquo;s discuss these two properties separately.</p>
+
+<h3>Asynchrony</h3>
+
+<p>Parallel systems also exhibit asynchrony, as long it&rsquo;s possible for
+there to be a delay between one process sending a message [2]
+and the other processes having the opportunity to read that message. Even on a single
+machine, this delay might be induced by locks within the operating system kernel,
+or by the cache coherence protocol implemented in hardware on a multicore chip.</p>
+
+<p>With this in mind, let&rsquo;s return to Aphyr&rsquo;s statement.
+What exactly did he mean by &ldquo;big windows of concurrency&rdquo;?
+His article focuses on what happens when multiple clients write to the same
+database key, so by &ldquo;concurrency&rdquo; I think he is referring to situations where multiple processes
+might simultaneously issue writes to the same piece of state. But if you
+think about it, the entire execution is a &ldquo;big window of
+concurrency&rdquo; in this sense, regardless of whether the database replicas are partitioned.
+By &ldquo;big windows of concurrency&rdquo; I think Aphyr was really talking about <em>asynchrony</em> (or more
+precisely, periods of high message delivery times),
+since network partitions are hard to deal with precisely because the messages
+between replicas aren&rsquo;t deliverable until after the partition is recovered:
+when replicas can&rsquo;t coordinate, it becomes challenging (or impossible, if the system chooses to enforce linearizability)
+for them to correctly process those concurrent writes. Amending Aphyr&rsquo;s statement then:</p>
+
+<p>   &ldquo;In a very real sense, partitions are just really big windows of asynchrony.&rdquo;</p>
+
+<p>Does this amendment resolve our quandary? Someone could
+rightly point out that because partitions don&rsquo;t really occur within a single chip,
+parallel systems can effectively provide guarantees on how long message
+delays can last [3], whereas partitions in distributed systems may last
+arbitrarily long. Some algorithms designed for parallel computers might
+therefore break in a distributed setting,
+but I don&rsquo;t think this is really the distinction we&rsquo;re looking
+for.</p>
+
+<h3>Partial Failure</h3>
+
+<p>Designers of distributed algorithms codify their assumptions
+about the possible ways nodes can fail by specifying a &lsquo;failure model&rsquo;. Failure models might describe
+how many nodes can fail&mdash;-for example, quorum-based algorithms assume that no more
+than N/2 nodes ever fail, otherwise they cannot make progress&mdash;-or they might
+spell out how individual crashed nodes behave. The latter constraint forms a
+hierarchy, where weaker failure models (e.g. &lsquo;fail-stop&rsquo;, where crashed nodes are guaranteed to never
+send messages again) can be reduced to special cases of stronger models (e.g.
+&lsquo;Byzantine&rsquo;, where faulty nodes can behave arbitrarily, even possibly
+mimicking the behavior of correct nodes) [4].</p>
+
+<p>Throughout the Jepsen series, Aphyr tests distributed systems by (i) telling
+clients to issue concurrent writes, (ii) inducing a network partition between
+database replicas, and (iii) recovering the partition. Observe that Jepsen
+never actually kills replicas! This failure model is actually weaker than fail-stop,
+since nodes are guaranteed to eventually resume sending messages [5].
+Aphyr&rsquo;s statement is beginning to make sense:</p>
+
+<p>   &ldquo;In a very real sense, network partitions that are followed by network recovery are just really big windows of asynchrony.&rdquo;</p>
+
+<p>This statement is true; from the perspective of a node in the system, a network partition followed by a network recovery
+is indistinguishable from a random spike in message delays, or peer nodes that
+are just very slow to respond. In other words, a distributed system that
+guarantees that messages will eventually be deliverable to all nodes is
+equivalent to an asynchronous parallel system. But if any nodes in the
+distributed system actually fail, we&rsquo;re no longer equivalent to a parallel
+system.</p>
+
+<h3>Who cares?</h3>
+
+<p>This discussion might sound like academic hairsplitting, but I claim that
+these distinctions have practical implications.</p>
+
+<p>As an example, let&rsquo;s imagine that you need to make a choice between shared memory
+versus message passing as the communication model for the shiny new distributed
+system you&rsquo;re designing. If you come from a parallel computing background you
+would know that message passing is actually equivalent to shared memory, in
+the sense that you can use a message passing abstraction to implement
+shared memory, and vice versa. You might therefore conclude that you
+are free to choose whichever abstraction is more convenient or performant for
+your distributed system. If you jumped to this conclusion you might end up
+making your system more fragile without realizing it.
+Message passing is not equivalent to shared memory in distributed systems [6],
+precisely because distributed systems exhibit <em>partial failures</em>;
+in order to correctly implement shared memory in a distributed system it must
+always be possible to coordinate with a quorum, or
+otherwise be able to accurately detect which nodes have failed. Message
+passing does not have this limitation.</p>
+
+<p>Another takeaway from this discussion is that Jepsen is actually testing a
+fairly weak failure mode. Despite Jepsen&rsquo;s simplicity though, Aphyr has managed to uncover problems in
+an impressive number of distributed databases. If we want to uncover yet more implicit assumptions
+about how our systems behave, stronger failure modes seem like an
+excellent place to look.</p>
+
+<hr />
+
+<p>[1] Thanks to <a href="http://www.cs.berkeley.edu/~alig/">Ali Ghodsi</a> for helping me tease out the differences between these properties.</p>
+
+<p>[2] or writing to shared memory, which is essentially the same as sending a
+message.</p>
+
+<p>[3] See, for example, PRAM or BSP, which assume that every node can
+communicate with every other node within each &ldquo;round&rdquo;. It&rsquo;s trivial to solve
+<a href="http://groups.csail.mit.edu/tds/papers/Lynch/pods83-flp.pdf">hard</a> problems like
+consensus in this world, because you can always just take a majority
+vote and decide within two rounds.</p>
+
+<p>[4] See Ali Ghodsi&rsquo;s excellent <a href="http://www.cs.berkeley.edu/~alig/cs294-91/events-links.pptx">slides</a> for a taxonomy of these failure models.</p>
+
+<p>[5] Note that this is not equivalent to &lsquo;crash-recovery&rsquo;. Crash-recovery is
+actually stronger than fail-stop, because nodes <em>may</em> recover or they may
+not.</p>
+
+<p>[6] Nancy Lynch, &ldquo;Distributed Algorithms&rdquo;, Morgan Kaufmann, 1996.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Colin Scott</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-03-30T11:29:00-07:00" pubdate data-updated="true">Mar 30<span>th</span>, 2014</time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://colin-scott.github.com/blog/2014/03/30/what-distinguishes-distributed-computing-from-parallel-computing/" data-via="_colin_scott_" data-counturl="http://colin-scott.github.com/blog/2014/03/30/what-distinguishes-distributed-computing-from-parallel-computing/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    
+    <section>
+      <h1>Comments</h1>
+      <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+    </section>
+    
+    <ul class="pager">
+      
+      <li class="previous"><a class="basic-alignment left"
+        href="/blog/2013/05/12/wan-vs-datacenter-link-reliability/" title="Previous Post:
+        WAN vs. Datacenter Link Reliability">&laquo; WAN vs. Datacenter Link Reliability</a></li>
+      
+      <li><a href="/blog/archives">Blog Archives</a></li>
+      
+    </ul>
+  </footer>
+</article>
+
+<aside class="sidebar-nav span3">
+  
+    <section class="well">
+  <ul id="recent_posts" class="nav nav-list">
+    <li class="nav-header">Recent Posts</li>
+    
+      <li class="post">
+        <a href="/blog/2014/03/30/what-distinguishes-distributed-computing-from-parallel-computing/">What Distinguishes Distributed Computing From Parallel Computing?</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/05/12/wan-vs-datacenter-link-reliability/">WAN vs. Datacenter Link Reliability</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/12/24/latency-trends/">Latency Trends</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/10/28/7-ways-to-deal-with-ordering-bugs-in-distributed-systems/">7 ways to handle concurrency in distributed systems</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section class="well">
+  <ul id="gh_repos" class="nav">
+    <li class="nav-header">GitHub Repos</li>
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/colin-scott">@colin-scott</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        github.showRepos({
+            user: 'colin-scott',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/asides/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo" class="page-footer"><hr>
+<p>
+  Copyright &copy; 2014 - Colin Scott -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'restforthewicked';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://colin-scott.github.com/blog/2014/03/30/what-distinguishes-distributed-computing-from-parallel-computing/';
+        var disqus_url = 'http://colin-scott.github.com/blog/2014/03/30/what-distinguishes-distributed-computing-from-parallel-computing/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
