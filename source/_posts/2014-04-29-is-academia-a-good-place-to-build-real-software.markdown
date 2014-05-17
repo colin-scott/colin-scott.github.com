@@ -50,8 +50,9 @@ What we really care about though is the ratio of employees in industry to number
 <img src="http://www.eecs.berkeley.edu/~rcs/research/oes_ratio.jpg" alt="OES ratio data" width=100%>
 
 In the last few years, both the software industry and Academia are growing at roughly the same rate, whereas researchers in industrial
-labs appear to be severely dropping off relative to industry. We can see this relative growth rate better by normalizing the datasets (dividing each datapoint by the maximum datapoint
-in its series):
+labs appear to be dropping off relative to the software industry. We can see this relative growth rate better by normalizing the datasets (dividing each datapoint by the maximum datapoint
+in its series -- might be better to take the derivative, but I'm too lazy to
+figure out how to do that at the moment):
 
 <img src="http://www.eecs.berkeley.edu/~rcs/research/oes_normalized.jpg" alt="OES normalized data" width=100%>
 
