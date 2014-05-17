@@ -45,13 +45,15 @@ Hm. The first thing we notice is that it's hard to even see the line for academi
 To give you a sense of where it's at, the y-coordinate at May, 2013 for computer science teachers and professors is 35,770, two
 orders of magnitude smaller than the 3,339,440 total employees in the software industry at that time.
 
-Rather than absolute numbers, perhaps we should look at relative growth. Here we normalize the datasets by
-dividing each datapoint by the maximum datapoint in its series:
+What we really care about though is the ratio of employees in industry to number of researchers:
+
+<img src="http://www.eecs.berkeley.edu/~rcs/research/oes_ratio.jpg" alt="OES ratio data" width=100%>
+
+In the last few years, both the software industry and Academia are growing at roughly the same rate, whereas researchers in industrial
+labs appear to be severely dropping off relative to industry. We can see this relative growth rate better by normalizing the datasets (dividing each datapoint by the maximum datapoint
+in its series):
 
 <img src="http://www.eecs.berkeley.edu/~rcs/research/oes_normalized.jpg" alt="OES normalized data" width=100%>
-
-Both the software industry and Academia are on the rise, whereas researchers in industrial
-labs appear to be dropping off.
 
 The data for the previous graphs only goes back to 1995. The Bureau of Labor
 Statistics also publishes coarser granularity going all the way to 1950 and beyond:
