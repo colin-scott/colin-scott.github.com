@@ -5,7 +5,7 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Is Academia A Good Place To Build Real Software? - Rest for the Wicked</title>
+  <title>Performance Modeling for Network Control Plane Systems - Rest for the Wicked</title>
   <meta name="author" content="Colin Scott">
 
   
@@ -19,7 +19,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://colin-scott.github.io/blog/2014/04/29/is-academia-a-good-place-to-build-real-software">
+  <link rel="canonical" href="http://colin-scott.github.io/blog/2014/10/01/performance-modeling-for-sdn">
   <link href="http://cryptm.org/~hpb/images/C.favicon.ico" rel="icon">
   <link href="/assets/css/bootstrap.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/assets/css/bootstrap-responsive.css" media="screen, projection" rel="stylesheet" type="text/css">
@@ -115,7 +115,7 @@
   
   <header class="page-header">
     
-      <h1 class="entry-title">Is Academia a Good Place to Build Real Software?</h1>
+      <h1 class="entry-title">Performance Modeling for Network Control Plane Systems</h1>
     
     
       <p class="meta">
@@ -131,7 +131,7 @@
   
 
 
-<time datetime="2014-04-29T19:56:04-07:00" pubdate data-updated="true">Apr 29<span>th</span>, 2014</time>
+<time datetime="2014-10-01T21:51:21-07:00" pubdate data-updated="true">Oct 1<span>st</span>, 2014</time>
         
          | <a href="#disqus_thread">Comments</a>
         
@@ -140,66 +140,26 @@
   </header>
 
 
-<div class="entry-content"><p>I often overhear a recurring debate amongst researchers: is Academia a good
-place to build real software systems? By &ldquo;real&rdquo;, we typically mean &ldquo;used&rdquo;,
-particularly by people outside of academic circles.</p>
+<div class="entry-content"><p>At Berkeley I have the opportunity to work with some of the smartest undergrads around. One of the undergrads I work with,
+<a href="https://plus.google.com/109177137524762864782/about">Andrew Or</a>, did some neat work on modeling the performance of network control plane systems.
+He decided to take a once-in-a-lifetime opportunity to join <a href="http://databricks.com/">Databricks</a> before we got the chance to publish his work, so in his stead I thought
+I&rsquo;d share his work here.</p>
 
-<p>There have certainly been some success stories. <a href="http://www.bsd.org/">BSD</a>,
-<a href="http://llvm.org/">LLVM</a>, <a href="http://www.xenproject.org/">Xen</a>, and <a href="http://spark.apache.org/">Spark</a> come to mind.</p>
+<p>An interactive version of his performance model can be found at this <a href="http://www.eecs.berkeley.edu/~rcs/research/convergence_modeling/">website</a>. Description from the website:</p>
 
-<p>Nonetheless, some argue that these success stories came about at a time
-when the surrounding software ecosystem was nascent enough for a small group of researchers to
-be able to make a substantial contribution, and that the ecosystem is normally
-at a point where researchers cannot easily contribute. Consider for example that BSD was
-initially released in 1977, when very few open source operating systems
-existed. Now we have Linux, which has almost <a href="http://www.cnet.com/news/linux-development-by-the-numbers-big-and-getting-bigger/">1400 active
-developers</a>.</p>
+<blockquote>
+<p>A key latency metric for network control plane systems is convergence time: the duration between when a change occurs in a network and when the network has converged to an updated configuration that accommodates that change. The faster the convergence time, the better.<p><br />
 
-<p>Is this line of reasoning correct? Is the heyday of Academic systems software over? Will it ever come again?</p>
+<p>Convergence time depends on many variables: latencies between network devices, the number of network devices, the complexity of the replication mechanism used (if any) between controllers, storage latencies, etc. With so many variables it can be difficult to build an intuition for how the variables interact to determine overall convergence time.</p><br />
 
-<p>Without a doubt, building real software systems requires substantial (wo)manpower; no
-matter how great the idea is, implementing it will require raw effort.</p>
+<p>The purpose of this tool is to help build that intuition. Based on analytic models of communication complexity for various replication and network update schemes, the tool quantifies convergence times for a given topology and workload. With it, you can answer questions such as &#8220;How far will my current approach scale while staying within my SLA?&#8221;, and &#8220;What is the convergence time of my network under a worst-case workload?&#8221;.</p>
+</blockquote>
 
-<p>This fact suggests an indirect way to evaluate our question. Let&rsquo;s assume that
-(i) any given software
-developer can only produce a fixed (constant) amount of coding progress in a fixed
-timeframe and (ii) the maturity of the surrounding software ecosystem is
-proportional to collective effort put into it. We can then approximate an
-answer to our
-question by looking at the number of software developers in industry vs. the number of
-researchers over time.</p>
 
-<p>It turns out that the <a href="http://www.bls.gov/">Bureau of Labor Statistics</a>
-publishes exactly the <a href="http://www.bls.gov/data/">data</a> we need for the United States.
-Here&rsquo;s what I found:</p>
-
-<p><img src="http://www.eecs.berkeley.edu/~rcs/research/oes.jpg" alt="OES data" width=100%></p>
-
-<p>Hm. The first thing we notice is that it&rsquo;s hard to even see the line for academic and industrial researchers.
-To give you a sense of where it&rsquo;s at, the y-coordinate at May, 2013 for computer science teachers and professors is 35,770, two
-orders of magnitude smaller than the 3,339,440 total employees in the software industry at that time.</p>
-
-<p>What we really care about though is the ratio of employees in industry to number of researchers:</p>
-
-<p><img src="http://www.eecs.berkeley.edu/~rcs/research/oes_ratio.jpg" alt="OES ratio data" width=100%></p>
-
-<p>In the last few years, both the software industry and Academia are growing at roughly the same rate, whereas researchers in industrial
-labs appear to be dropping off relative to the software industry. We can see this relative growth rate better by normalizing the datasets (dividing each datapoint by the maximum datapoint
-in its series &mdash; might be better to take the derivative, but I&rsquo;m too lazy to
-figure out how to do that at the moment):</p>
-
-<p><img src="http://www.eecs.berkeley.edu/~rcs/research/oes_normalized.jpg" alt="OES normalized data" width=100%></p>
-
-<p>The data for the previous graphs only goes back to 1995. The Bureau of Labor
-Statistics also publishes coarser granularity going all the way to 1950 and beyond:</p>
-
-<p><img src="http://www.eecs.berkeley.edu/~rcs/research/nes.jpg" alt="NES data" width=100%></p>
-
-<p>(See the hump around 2001?)</p>
-
-<p>Not sure if this data actually answers our initial question, but I certainly found it insightful!
-If you&rsquo;d like more details on how I did this analysis, or would like to play around with the data for
-yourself, see my <a href="https://github.com/colin-scott/go-bls-client">code</a>.</p>
+<p>The tool is insightful (e.g.
+note the striking difference between SDN controllers and traditional routing protocols) and a lot of fun to play around with; I encourage you to check it out.
+In case you are curious about the details of the model or would like to suggest
+improvements, the code is available <a href="https://github.com/andrewor14/web-model">here</a>. We also have a 6-page write up of the work, available upon request.</p>
 </div>
 
 
@@ -222,7 +182,7 @@ yourself, see my <a href="https://github.com/colin-scott/go-bls-client">code</a>
   
 
 
-<time datetime="2014-04-29T19:56:04-07:00" pubdate data-updated="true">Apr 29<span>th</span>, 2014</time>
+<time datetime="2014-10-01T21:51:21-07:00" pubdate data-updated="true">Oct 1<span>st</span>, 2014</time>
       
 
 
@@ -230,7 +190,7 @@ yourself, see my <a href="https://github.com/colin-scott/go-bls-client">code</a>
     
       <div class="sharing">
   
-  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://colin-scott.github.io/blog/2014/04/29/is-academia-a-good-place-to-build-real-software/" data-via="_colin_scott_" data-counturl="http://colin-scott.github.io/blog/2014/04/29/is-academia-a-good-place-to-build-real-software/" >Tweet</a>
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://colin-scott.github.io/blog/2014/10/01/performance-modeling-for-sdn/" data-via="_colin_scott_" data-counturl="http://colin-scott.github.io/blog/2014/10/01/performance-modeling-for-sdn/" >Tweet</a>
   
   
   
@@ -247,14 +207,10 @@ yourself, see my <a href="https://github.com/colin-scott/go-bls-client">code</a>
     <ul class="pager">
       
       <li class="previous"><a class="basic-alignment left"
-        href="/blog/2014/03/30/what-distinguishes-distributed-computing-from-parallel-computing/" title="Previous Post:
-        What Distinguishes Distributed Computing From Parallel Computing?">&laquo; What Distinguishes Distributed Computing From Parallel Computing?</a></li>
+        href="/blog/2014/04/29/is-academia-a-good-place-to-build-real-software/" title="Previous Post:
+        Is Academia A Good Place To Build Real Software?">&laquo; Is Academia A Good Place To Build Real Software?</a></li>
       
       <li><a href="/blog/archives">Blog Archives</a></li>
-      
-      <li class="next"><a class="basic-alignment right" href="/blog/2014/10/01/performance-modeling-for-sdn/"
-        title="Next Post: Performance Modeling for Network Control Plane Systems">Performance Modeling for Network Control Plane Systems
-        &raquo;</a></li>
       
     </ul>
   </footer>
@@ -334,8 +290,8 @@ yourself, see my <a href="https://github.com/colin-scott/go-bls-client">code</a>
       
         
         // var disqus_developer = 1;
-        var disqus_identifier = 'http://colin-scott.github.io/blog/2014/04/29/is-academia-a-good-place-to-build-real-software/';
-        var disqus_url = 'http://colin-scott.github.io/blog/2014/04/29/is-academia-a-good-place-to-build-real-software/';
+        var disqus_identifier = 'http://colin-scott.github.io/blog/2014/10/01/performance-modeling-for-sdn/';
+        var disqus_url = 'http://colin-scott.github.io/blog/2014/10/01/performance-modeling-for-sdn/';
         var disqus_script = 'embed.js';
       
     (function () {

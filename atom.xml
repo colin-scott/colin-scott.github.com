@@ -4,7 +4,7 @@
   <title><![CDATA[Rest for the Wicked]]></title>
   <link href="http://colin-scott.github.io/atom.xml" rel="self"/>
   <link href="http://colin-scott.github.io/"/>
-  <updated>2014-05-16T22:09:35-07:00</updated>
+  <updated>2014-10-06T13:07:01-07:00</updated>
   <id>http://colin-scott.github.io/</id>
   <author>
     <name><![CDATA[Colin Scott]]></name>
@@ -12,6 +12,34 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Performance Modeling for Network Control Plane Systems]]></title>
+    <link href="http://colin-scott.github.io/blog/2014/10/01/performance-modeling-for-sdn/"/>
+    <updated>2014-10-01T21:51:21-07:00</updated>
+    <id>http://colin-scott.github.io/blog/2014/10/01/performance-modeling-for-sdn</id>
+    <content type="html"><![CDATA[<p>At Berkeley I have the opportunity to work with some of the smartest undergrads around. One of the undergrads I work with,
+<a href="https://plus.google.com/109177137524762864782/about">Andrew Or</a>, did some neat work on modeling the performance of network control plane systems.
+He decided to take a once-in-a-lifetime opportunity to join <a href="http://databricks.com/">Databricks</a> before we got the chance to publish his work, so in his stead I thought
+I&rsquo;d share his work here.</p>
+
+<p>An interactive version of his performance model can be found at this <a href="http://www.eecs.berkeley.edu/~rcs/research/convergence_modeling/">website</a>. Description from the website:</p>
+
+<blockquote>
+<p>A key latency metric for network control plane systems is convergence time: the duration between when a change occurs in a network and when the network has converged to an updated configuration that accommodates that change. The faster the convergence time, the better.<p><br />
+
+<p>Convergence time depends on many variables: latencies between network devices, the number of network devices, the complexity of the replication mechanism used (if any) between controllers, storage latencies, etc. With so many variables it can be difficult to build an intuition for how the variables interact to determine overall convergence time.</p><br />
+
+<p>The purpose of this tool is to help build that intuition. Based on analytic models of communication complexity for various replication and network update schemes, the tool quantifies convergence times for a given topology and workload. With it, you can answer questions such as &#8220;How far will my current approach scale while staying within my SLA?&#8221;, and &#8220;What is the convergence time of my network under a worst-case workload?&#8221;.</p>
+</blockquote>
+
+
+<p>The tool is insightful (e.g.
+note the striking difference between SDN controllers and traditional routing protocols) and a lot of fun to play around with; I encourage you to check it out.
+In case you are curious about the details of the model or would like to suggest
+improvements, the code is available <a href="https://github.com/andrewor14/web-model">here</a>. We also have a 6-page write up of the work, available upon request.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Is Academia A Good Place To Build Real Software?]]></title>
@@ -57,13 +85,14 @@ Here&rsquo;s what I found:</p>
 To give you a sense of where it&rsquo;s at, the y-coordinate at May, 2013 for computer science teachers and professors is 35,770, two
 orders of magnitude smaller than the 3,339,440 total employees in the software industry at that time.</p>
 
-<p>What we really care about though is the ratio of employees in industry to number researchers:</p>
+<p>What we really care about though is the ratio of employees in industry to number of researchers:</p>
 
 <p><img src="http://www.eecs.berkeley.edu/~rcs/research/oes_ratio.jpg" alt="OES ratio data" width=100%></p>
 
 <p>In the last few years, both the software industry and Academia are growing at roughly the same rate, whereas researchers in industrial
-labs appear to be severely dropping off. We can see this relative growth rate better by normalizing the datasets (dividing each datapoint by the maximum datapoint
-in its series):</p>
+labs appear to be dropping off relative to the software industry. We can see this relative growth rate better by normalizing the datasets (dividing each datapoint by the maximum datapoint
+in its series &mdash; might be better to take the derivative, but I&rsquo;m too lazy to
+figure out how to do that at the moment):</p>
 
 <p><img src="http://www.eecs.berkeley.edu/~rcs/research/oes_normalized.jpg" alt="OES normalized data" width=100%></p>
 
