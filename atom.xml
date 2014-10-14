@@ -4,7 +4,7 @@
   <title><![CDATA[Rest for the Wicked]]></title>
   <link href="http://colin-scott.github.io/atom.xml" rel="self"/>
   <link href="http://colin-scott.github.io/"/>
-  <updated>2014-10-13T22:37:54-07:00</updated>
+  <updated>2014-10-13T22:39:29-07:00</updated>
   <id>http://colin-scott.github.io/</id>
   <author>
     <name><![CDATA[Colin Scott]]></name>
@@ -12,15 +12,6 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
-  
-  <entry>
-    <title type="html"><![CDATA[Half-Baked Ideas]]></title>
-    <link href="http://colin-scott.github.io/blog/2014/10/07/half-baked-ideas/"/>
-    <updated>2014-10-07T09:23:48-07:00</updated>
-    <id>http://colin-scott.github.io/blog/2014/10/07/half-baked-ideas</id>
-    <content type="html"><![CDATA[
-]]></content>
-  </entry>
   
   <entry>
     <title type="html"><![CDATA[Performance Modeling for Network Control Plane Systems]]></title>
