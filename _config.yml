@@ -99,7 +99,8 @@ disqus_short_name: restforthewicked
 disqus_show_comment_count: true
 
 # Google Analytics
-google_analytics_tracking_id:
+google_analytics_tracking_id: UA-29849261-2
+
 
 # Facebook Like
 facebook_like: false
