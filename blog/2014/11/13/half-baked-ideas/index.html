@@ -5,7 +5,7 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>WAN vs. Datacenter Link Reliability - Rest for the Wicked</title>
+  <title>Half-Baked Ideas - Rest for the Wicked</title>
   <meta name="author" content="Colin Scott">
 
   
@@ -19,7 +19,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://colin-scott.github.io/blog/2013/05/12/wan-vs-datacenter-link-reliability">
+  <link rel="canonical" href="http://colin-scott.github.io/blog/2014/11/13/half-baked-ideas">
   <link href="http://cryptm.org/~hpb/images/C.favicon.ico" rel="icon">
   <link href="/assets/css/bootstrap.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/assets/css/bootstrap-responsive.css" media="screen, projection" rel="stylesheet" type="text/css">
@@ -127,7 +127,7 @@
   
   <header class="page-header">
     
-      <h1 class="entry-title">WAN vs. Datacenter Link Reliability</h1>
+      <h1 class="entry-title">Half-Baked Ideas</h1>
     
     
       <p class="meta">
@@ -143,7 +143,7 @@
   
 
 
-<time datetime="2013-05-12T15:46:00-07:00" pubdate data-updated="true">May 12<span>th</span>, 2013</time>
+<time datetime="2014-11-13T18:10:45-08:00" pubdate data-updated="true">Nov 13<span>th</span>, 2014</time>
         
          | <a href="#disqus_thread">Comments</a>
         
@@ -152,30 +152,26 @@
   </header>
 
 
-<div class="entry-content"><p>According to a study by Turner et al. [1], wide area network links have an
-average of 1.2 to 2.7 days of downtime per year. This translates to roughly
-two and a half 9&#8217;s of reliability [2].</p>
+<div class="entry-content"><p>As a graduate student, I find that the rate of progress I&#8217;m able to make on my current
+research project is significantly lower than the rate at which I encounter
+ideas for new research projects. Over time, this means that the number of
+half-baked ideas jotted down in my notebook grows without bound.</p>
 
-<p>I was curious how this compared to datacenter links, so I took a look at Gill
-et. al&#8217;s paper [3] on datacenter network failures at Microsoft. Unfortunately some
-of the data has been redacted, but I was able to reverse engineer the mean
-link downtime per year with the help of <a href="http://www.eecs.berkeley.edu/~apanda/">Aurojit Panda&#8217;s</a>
-<a href="https://github.com/apanda/svg-points">svg-to-points</a> converter. The results
-are interesting: out of all links types, the average downtime was 0.3 days.
-This translates to roughly three and a half 9&#8217;s of reliability, an order of magnitude greater
-than WAN links.</p>
+<p>In Academia, we sometimes feel dissuaded from sharing our half-baked ideas. Our
+fear is that we may get &#8216;scooped&#8217;; that is, we worry that if we share an idea before we have a time to flesh it out,
+someone else may take that idea and turn it into a fully-fledged publication, thereby stealing our opportunity to publish.</p>
 
-<p>Intuitively this makes sense. WAN links are much more prone to
-<a href="http://www.cs.cornell.edu/projects/ladis2009/talks/dean-keynote-ladis2009.pdf">drunken hunters, bulldozers, wild dogs,</a>
-<a href="http://www.zetatalk.com/newsletr/issue284.htm">ships dropping anchor</a> and the like than links within a <a href="http://www.wired.com/wiredenterprise/2012/10/data-center-easter-eggs/">secure</a> datacenter.</p>
+<p>Until now, I haven&#8217;t publicly shared any of my half-baked ideas. I would like to
+change that [1].</p>
 
-<h4>Footnotes</h4>
+<p>So, in the hope of generating discussion, I&#8217;ll be posting a series of
+half-baked ideas. Please feel welcome to steal them, criticize them, or add to
+them!</p>
 
-<p>[1] Daniel Turner, Kirill Levchenko, Alex C. Snoeren, and Stefan Savage. California Fault Lines: Understanding the Causes and Impact of Network Failures, Table 4. SIGCOMM &#8216;10.</p>
+<hr />
 
-<p>[2] Note that this statistic is specifically about hardware failure, not overall network availability.</p>
-
-<p>[3] Phillipa Gill, Navendu Jain, Nachiappan Nagappan. Understanding Network Failures in Data Centers: Measurement, Analysis, and Implications, Figures 8c &amp; 9c. SIGCOMM &#8216;11</p>
+<p>[1] In part, this is because I have come to believe that academic caginess is petty. More importantly though, I
+have come to the terms with the reality that I will not have time to pursue most of these ideas.</p>
 </div>
 
 
@@ -198,7 +194,7 @@ than WAN links.</p>
   
 
 
-<time datetime="2013-05-12T15:46:00-07:00" pubdate data-updated="true">May 12<span>th</span>, 2013</time>
+<time datetime="2014-11-13T18:10:45-08:00" pubdate data-updated="true">Nov 13<span>th</span>, 2014</time>
       
 
 
@@ -206,7 +202,7 @@ than WAN links.</p>
     
       <div class="sharing">
   
-  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://colin-scott.github.io/blog/2013/05/12/wan-vs-datacenter-link-reliability/" data-via="_colin_scott_" data-counturl="http://colin-scott.github.io/blog/2013/05/12/wan-vs-datacenter-link-reliability/" >Tweet</a>
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://colin-scott.github.io/blog/2014/11/13/half-baked-ideas/" data-via="_colin_scott_" data-counturl="http://colin-scott.github.io/blog/2014/11/13/half-baked-ideas/" >Tweet</a>
   
   
   
@@ -223,13 +219,13 @@ than WAN links.</p>
     <ul class="pager">
       
       <li class="previous"><a class="basic-alignment left"
-        href="/blog/2012/12/24/latency-trends/" title="Previous Post:
-        Latency Trends">&laquo; Latency Trends</a></li>
+        href="/blog/2014/10/01/performance-modeling-for-sdn/" title="Previous Post:
+        Performance Modeling for Network Control Plane Systems">&laquo; Performance Modeling for Network Control Plane Systems</a></li>
       
       <li><a href="/blog/archives">Blog Archives</a></li>
       
-      <li class="next"><a class="basic-alignment right" href="/blog/2014/03/30/what-distinguishes-distributed-computing-from-parallel-computing/"
-        title="Next Post: What Distinguishes Distributed Computing From Parallel Computing?">What Distinguishes Distributed Computing From Parallel Computing?
+      <li class="next"><a class="basic-alignment right" href="/blog/2014/11/13/half-baked-idea-distributed-systems-need-message-level-debuggers/"
+        title="Next Post: Half-Baked Idea: Distributed Systems Need Message-Level Debuggers">Half-Baked Idea: Distributed Systems Need Message-Level Debuggers
         &raquo;</a></li>
       
     </ul>
@@ -310,8 +306,8 @@ than WAN links.</p>
       
         
         // var disqus_developer = 1;
-        var disqus_identifier = 'http://colin-scott.github.io/blog/2013/05/12/wan-vs-datacenter-link-reliability/';
-        var disqus_url = 'http://colin-scott.github.io/blog/2013/05/12/wan-vs-datacenter-link-reliability/';
+        var disqus_identifier = 'http://colin-scott.github.io/blog/2014/11/13/half-baked-ideas/';
+        var disqus_url = 'http://colin-scott.github.io/blog/2014/11/13/half-baked-ideas/';
         var disqus_script = 'embed.js';
       
     (function () {
