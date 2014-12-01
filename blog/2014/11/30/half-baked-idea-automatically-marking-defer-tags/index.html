@@ -5,7 +5,7 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Half-Baked Idea: Distributed Systems Need Message-Level Debuggers - Rest for the Wicked</title>
+  <title>Half-Baked Idea: Automatically Marking Deferred Javascript - Rest for the Wicked</title>
   <meta name="author" content="Colin Scott">
 
   
@@ -19,7 +19,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://colin-scott.github.io/blog/2014/11/13/half-baked-idea-distributed-systems-need-message-level-debuggers">
+  <link rel="canonical" href="http://colin-scott.github.io/blog/2014/11/30/half-baked-idea-automatically-marking-defer-tags">
   <link href="http://cryptm.org/~hpb/images/C.favicon.ico" rel="icon">
   <link href="/assets/css/bootstrap.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/assets/css/bootstrap-responsive.css" media="screen, projection" rel="stylesheet" type="text/css">
@@ -127,7 +127,7 @@
   
   <header class="page-header">
     
-      <h1 class="entry-title">Half-Baked Idea: Distributed Systems Need Message-Level Debuggers</h1>
+      <h1 class="entry-title">Half-Baked Idea: Automatically Marking Deferred Javascript</h1>
     
     
       <p class="meta">
@@ -143,7 +143,7 @@
   
 
 
-<time datetime="2014-11-13T19:26:12-08:00" pubdate data-updated="true">Nov 13<span>th</span>, 2014</time>
+<time datetime="2014-11-30T12:31:59-08:00" pubdate data-updated="true">Nov 30<span>th</span>, 2014</time>
         
          | <a href="#disqus_thread">Comments</a>
         
@@ -152,46 +152,62 @@
   </header>
 
 
-<div class="entry-content"><p>gdb, although an incredibly powerful tool for debugging single programs, doesn&rsquo;t work
-so well for distributed systems.</p>
+<div class="entry-content"><p>A typical web page is composed of multiple objects: HTML files, Javascript
+files, CSS files, images, etc..</p>
 
-<p>The crucial difference between a single program and a distributed system is that distributed
-computation revolves around <em>network messages</em>. Distributed systems spend
-much of their time doing nothing more than waiting for network messages. When
-they receive a message, they perform computation, perhaps send out a few
-network messages of their own, and then return to their default state of
-waiting for more network messages.</p>
+<p>When your browser loads a web page, it executes a list of tasks:
+first it needs to fetch the main HTML, then it can parse each of the
+HTML tags to know what other objects to
+fetch, then it can process each of the fetched objects and their effect on the
+DOM, and finally it can render pixels to your screen.</p>
 
-<p>Because there&rsquo;s a network separating the nodes of the distributed system, you
-can&rsquo;t (easily) pause all processes and attach gdb. And, in the words of
-<a href="https://twitter.com/armon/status/533050582995435520">Armon Dadgar</a>,
-&ldquo;even if you could, the network is part of your system. Definitely not going to be able to gdb
-attach to that.&rdquo;</p>
+<p>To load your web page as fast as possible, the browser tries to execute as
+many of these tasks as it can <em>in parallel</em>. The less time the browser
+spends sitting idle waiting for tasks to finish, the faster the web page
+will load.</p>
 
-<p>Suppose that you decide to attach gdb to a single process in the distributed
-system. Even then, you&rsquo;ll probably end up frustrated. You&rsquo;re going to spend most
-of your time waiting on a <code>select</code> or <code>receive</code> breakpoint. And when your
-breakpoint is triggered, you&rsquo;ll find that most of the
-messages won&rsquo;t be relevant for triggering <em>your</em> bug. You need to
-wait for a specific message, or even a specific sequence of messages, before
-you&rsquo;ll be able to trace through the code path that leads to your bug.</p>
+<p>It is not always possible to execute tasks in parallel. This is
+because some tasks have dependencies on others. The most obvious example
+is that the browser needs to fetch the main HTML before it can know
+what other objects to fetch [1].</p>
 
-<p>Crucially, gdb doesn&rsquo;t give you the ability to control network
-messages, yet network message are what drive the distributed
-system&rsquo;s execution. In other words, gdb operates at a level of abstraction that is lower than what you
-want.</p>
+<p>In general, the more dependencies a web page has,
+the longer it will take to load. Prudent web developers structure their web
+pages in a way that minimizes browsers&#8217; task dependencies.</p>
 
-<p>Distributed systems need a different kind of debugger. What we need is a
-debugger that will allow us to step through the distributed system&rsquo;s
-execution at the level of network messages. That is, you should be able to
-generate messages, control the order in which they arrive, and observe how the
-distributed system reacts.</p>
+<p>A particularly nasty dependency is Javascript execution. Whenever the browser
+encounters a Javascript tag, it stops all other parsing and rendering tasks, waits to fetch the
+Javascript, executes it until completion, and finally restarts the previously
+blocked tasks. Browsers enforce this dependency because Javascript can modify the DOM;
+by modifying the DOM, Javascript might affect the execution of all other
+parsing and rendering tasks.</p>
 
-<p>Shameless self-promotion: <a href="http://ucb-sts.github.io/sts/walkthrough#interactive_mode">STS</a>
-supports an &ldquo;Interactive Mode&rdquo; that takes over control of the
-(software) network separating the nodes of a distributed system. This allows
-you to interactively reorder or drop messages, inject failures, or check
-invariants. We need something like this for testing and debugging general distributed systems.</p>
+<p>Placing Javascript tags in the beginning of an HTML page can have a huge
+performance hit, since each script adds 1 RTT plus computation time
+to the overall page load time.</p>
+
+<p>Fortunately, the HTML standard provides a mechanism that allows developers to mitigate this
+cost: the <a href="http://www.w3schools.com/tags/att_script_defer.asp">defer attribute</a>. The defer attribute tells the browser
+that it&rsquo;s OK to fetch and execute a Javascript tag asynchronously.</p>
+
+<p>Unfortunately, using the defer tag is not straightforward. The issue is
+that it&rsquo;s hard for the web developer to know whether it&rsquo;s safe to allow the browser to execute Javascript asynchronously.
+For instance, the Javascript may actually need to modify the DOM to ensure the correct execution of the page, or it
+may depend on other resources (e.g. other Javascript tags).</p>
+
+<p>Forcing web developers to reason about these complicated (and often hidden!)
+dependencies is, at best, a lot to ask for, and at worst, highly error-prone.
+For this reason few web developers today make use of defer tags.</p>
+
+<p>So here&rsquo;s my half-baked idea: wouldn&rsquo;t it be great if we had a compiler that
+could automatically mark defer attributes? Specifically, let&rsquo;s apply static
+or dynamic analysis to infer when it&rsquo;s safe for Javascript
+tags to execute asynchronously. Such a tool could go a long way towards improving the
+performance and correctness of the web.</p>
+
+<h4>Footnotes</h4>
+
+<p>[1] See the <a href="https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final177.pdf">WProf paper</a> for a nice overview of browser activity dependencies.</p>
 </div>
 
 
@@ -214,7 +230,7 @@ invariants. We need something like this for testing and debugging general distri
   
 
 
-<time datetime="2014-11-13T19:26:12-08:00" pubdate data-updated="true">Nov 13<span>th</span>, 2014</time>
+<time datetime="2014-11-30T12:31:59-08:00" pubdate data-updated="true">Nov 30<span>th</span>, 2014</time>
       
 
 
@@ -222,7 +238,7 @@ invariants. We need something like this for testing and debugging general distri
     
       <div class="sharing">
   
-  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://colin-scott.github.io/blog/2014/11/13/half-baked-idea-distributed-systems-need-message-level-debuggers/" data-via="_colin_scott_" data-counturl="http://colin-scott.github.io/blog/2014/11/13/half-baked-idea-distributed-systems-need-message-level-debuggers/" >Tweet</a>
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://colin-scott.github.io/blog/2014/11/30/half-baked-idea-automatically-marking-defer-tags/" data-via="_colin_scott_" data-counturl="http://colin-scott.github.io/blog/2014/11/30/half-baked-idea-automatically-marking-defer-tags/" >Tweet</a>
   
   
   
@@ -239,14 +255,10 @@ invariants. We need something like this for testing and debugging general distri
     <ul class="pager">
       
       <li class="previous"><a class="basic-alignment left"
-        href="/blog/2014/11/13/half-baked-ideas/" title="Previous Post:
-        Half-Baked Ideas">&laquo; Half-Baked Ideas</a></li>
+        href="/blog/2014/11/13/half-baked-idea-distributed-systems-need-message-level-debuggers/" title="Previous Post:
+        Half-Baked Idea: Distributed Systems Need Message-Level Debuggers">&laquo; Half-Baked Idea: Distributed Systems Need Message-Level Debuggers</a></li>
       
       <li><a href="/blog/archives">Blog Archives</a></li>
-      
-      <li class="next"><a class="basic-alignment right" href="/blog/2014/11/30/half-baked-idea-automatically-marking-defer-tags/"
-        title="Next Post: Half-Baked Idea: Automatically Marking Deferred Javascript">Half-Baked Idea: Automatically Marking Deferred Javascript
-        &raquo;</a></li>
       
     </ul>
   </footer>
@@ -326,8 +338,8 @@ invariants. We need something like this for testing and debugging general distri
       
         
         // var disqus_developer = 1;
-        var disqus_identifier = 'http://colin-scott.github.io/blog/2014/11/13/half-baked-idea-distributed-systems-need-message-level-debuggers/';
-        var disqus_url = 'http://colin-scott.github.io/blog/2014/11/13/half-baked-idea-distributed-systems-need-message-level-debuggers/';
+        var disqus_identifier = 'http://colin-scott.github.io/blog/2014/11/30/half-baked-idea-automatically-marking-defer-tags/';
+        var disqus_url = 'http://colin-scott.github.io/blog/2014/11/30/half-baked-idea-automatically-marking-defer-tags/';
         var disqus_script = 'embed.js';
       
     (function () {
