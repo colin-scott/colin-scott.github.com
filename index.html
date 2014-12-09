@@ -129,6 +129,150 @@
       
   <header class="page-header">
     
+      <h1 class="entry-title"><a href="/blog/2014/12/08/half-baked-idea-how-often-do-failure-detectors-falsely-accuse/">Half-baked Idea: Is Asynchrony Really That Bad? or: How Often Do Failure Detectors Falsely Accuse?</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-12-08T17:32:28-08:00" pubdate data-updated="true">Dec 8<span>th</span>, 2014</time>
+        
+         | <a href="/blog/2014/12/08/half-baked-idea-how-often-do-failure-detectors-falsely-accuse/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Distributed systems have two distinguishing features:</p>
+
+<ul>
+<li>Asynchrony, or &ldquo;absence of synchrony&rdquo;: messages from one process to another
+do not arrive immediately. In a fully asynchronous system, messages may be
+delayed for unbounded periods of time. In contrast, synchronous
+networks always provide bounded message delays.</li>
+<li>Partial failure: some processes in the system may fail while other processes
+continue executing.</li>
+</ul>
+
+
+<p>It&rsquo;s the combination of these two features that make distributed systems
+really hard; the crux of many impossibility proofs is
+that nodes in a fully asynchronous system can&rsquo;t distinguish message
+delays from failures.</p>
+
+<p>In practice, networks are somewhere between fully asynchronous and
+synchronous. That is, most (but not all!) of the time, networks give us sufficiently predictable message
+delays to allow nodes to coordinate successfully in the face of failures.</p>
+
+<p>When designing a distributed algorithm however, common wisdom says that you should try to
+make as few assumptions about the network as possible. The motivation for this
+principle is that minimizing your algorithm&rsquo;s assumptions about message delays maximizes the likelihood that it will work when placed
+in a real network (which may, in practice, fail to meet bounds on message delays).</p>
+
+<p>On the other hand, if your network does in fact provide bounds
+on message delays, you can often design simpler and more performant
+algorithms on top of it. An example of this observation that I find particularly
+compelling is <a href="https://syslab.cs.washington.edu/research/specpaxos/index.html">Speculative
+Paxos</a>, which
+co-designs a consensus algorithm and the underlying network to improve overall
+performance.</p>
+
+<p>At the risk of making unsubstantiated generalizations, I get the sense that
+theorists (who have dominated the field of distributed computing until somewhat recently) tend
+to worry a lot about corner cases that jeopardize correctness properties. That
+is, it&rsquo;s the theorist who&rsquo;s telling us to minimize our assumptions.
+In contrast, practitioners are often willing to sacrifice correctness in favor
+of simplicity and performance, as long as the corner cases that cause the
+system to violate correctness are sufficiently rare.</p>
+
+<p>To resolve the tension between the theorists&#8217; and the practitioners&#8217; principles, my half-baked idea is that we
+should attempt to answer the following question:
+&ldquo;How asynchronous are our networks in practice&rdquo;?</p>
+
+<p>Before outlining how one might answer this question, I need to provide a bit
+of background.</p>
+
+<h3>Failure Detectors</h3>
+
+<p>In reaction to the overly pessimistic asynchrony assumptions made by impossibility
+proofs, theorists spent about a decade [1] developing distributed algorithms for &ldquo;partially synchronous&rdquo; network models.
+The key property of the partially synchronous model is that at some point in the execution of the distributed system, the
+network will start to provide bounds on message delays, but the algorithm
+won&rsquo;t know when that point occurs.</p>
+
+<p>The problem with the partial asynchrony model is that algorithms built on top
+of it (and their corresponding correctness proofs) are messy: the timing assumptions of the algorithm are strewn throughout
+the code, and proving the algorithm correct requires you to pull those timing
+assumptions through the entire proof until you can finally check at the end
+whether they match up with the network model.</p>
+
+<p>To make reasoning about asynchrony easier, a theorist named Sam Toueg along
+with a few others at Cornell proposed the concept of <a href="http://www.cs.cornell.edu/home/sam/FDpapers/CT96-JACM.ps">failure detectors</a>.
+Failure detectors allow algorithms to encapsulate timing assumptions:
+instead of manually setting timers to detect failures, we design our
+algorithms to ask an oracle about the presence of failures [2]. To implement the oracle, we
+<a href="http://research.microsoft.com/en-us/people/weic/wdag97_hb.pdf">still</a> use timers,
+but now we have all of our timing assumptions collected cleanly in one place.</p>
+
+<p>Failure detectors form a hierarchy. The strongest failure detector has perfect
+accuracy (it never falsely accuses nodes of failing) and perfect completeness
+(it always informs all nodes of all failures). Weaker failure detectors might
+make mistakes, either by falsely accusing nodes of having crashed, or by
+neglecting to detect some failures. The different failure detectors
+correspond to different points on the asynchrony spectrum: perfect failure
+detectors can only be implemented in a fully synchronous network [3], whereas
+imperfect failure detectors correspond to partial synchrony.</p>
+
+<h3>Measuring Asynchrony</h3>
+
+<p>One way to get a handle on our question is to measure the behavior of failure detectors in practice.
+That is, one could implement imperfect failure detectors,
+place them in networks of different kinds, and measure how often they falsely
+accuse nodes of failing. If we have ground truth on when nodes actually fail
+in a controlled experiment, we can quantify how often those corner cases theorists
+are worried about come up.</p>
+
+<p>Anyone interested in getting their hands dirty?</p>
+
+<h4>Footnotes</h4>
+
+<p>[1] Starting in <a href="http://groups.csail.mit.edu/tds/papers/Lynch/jacm88.pdf">1988</a> and dwindling after <a href="http://www.cs.cornell.edu/home/sam/FDpapers/CT96-JACM.ps">1996</a>.</p>
+
+<p>[2] Side note: failures detectors aren&rsquo;t widely used in practice. Instead, most
+distributed systems use ad-hoc network timeouts strewn throughout the code. At best, distributed systems use
+adaptive timers, again strewn throughout the code. A library or language
+that encourages programmers to encapsulate
+timing assumptions and explicitly handle failure detection information could go a long
+way towards improving the simplicity, amenability to automated tools, and robustness
+of distributed systems.</p>
+
+<p>[3] Which is equivalent to saying that they can&rsquo;t be implemented. Unless you
+can ensure that the network itself never suffers from any failures or
+congestion, you can&rsquo;t guarantee perfect synchrony. Nonetheless, some of the most recent <a href="https://www.usenix.org/sites/default/files/conference/protected-files/vliu_nsdi13_slides.pdf">network designs</a> get us
+pretty close.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header class="page-header">
+    
       <h1 class="entry-title"><a href="/blog/2014/11/30/half-baked-idea-automatically-marking-defer-tags/">Half-Baked Idea: Automatically Marking Deferred Javascript</a></h1>
     
     
@@ -542,10 +686,11 @@ yourself, see my <a href="https://github.com/colin-scott/go-bls-client">code</a>
 
 <p>This statement seems to imply that distributed systems are &ldquo;equivalent&rdquo;
 to parallel (single-machine) computing systems, for the following reason: partitions,
-which occur in a network but don&rsquo;t really occur on a single chip, appear to be the key
+which occur in a network but don&rsquo;t really occur on a single chip [0], appear to be the key
 distinguishing property of distributed systems. But if partitions are just a
 special case of concurrency, then there shouldn&rsquo;t be any fundamental reasons
-why algorithms for multicore chips wouldn&rsquo;t be perfectly suitable for solving all the
+why algorithms for multicore computational models
+(such as <a href="http://en.wikipedia.org/wiki/Parallel_random-access_machine">PRAM</a>) wouldn&rsquo;t be perfectly suitable for solving all the
 problems we might encounter in a distributed setting.
 We know this to be false,
 so I&rsquo;ve been trying to puzzle out precisely what
@@ -597,7 +742,7 @@ for them to correctly process those concurrent writes. Amending Aphyr&rsquo;s st
 <blockquote><p>&ldquo;Network partitions are just really big windows of asynchrony.&rdquo;</p></blockquote>
 
 <p>Does this amendment resolve our quandary? Someone could
-rightly point out that because partitions don&rsquo;t really occur within a single chip,
+rightly point out that because partitions don&rsquo;t really occur within a single chip [0],
 parallel systems can effectively provide guarantees on how long message
 delays can last [3], whereas partitions in distributed systems may last
 arbitrarily long. Some algorithms designed for parallel computers might
@@ -662,6 +807,15 @@ about how our systems behave, stronger failure modes seem like an
 excellent place to look.</p>
 
 <hr />
+
+<p>[0] After I posted this blog post, Aphyr and others informed me that some of
+the latest multicore chips are in fact facing partial failures between cores
+due to voltage
+issues. This is quite interesting, because as multicore chips grow in transistor density, the
+distinction between parallel computing and distributed computing is becoming
+more and more blurred: modern multicore chips face both unbounded
+asynchrony (from the growing gap between levels of the memory hierarchy) and partial failure (from voltage
+issues).</p>
 
 <p>[1] Thanks to <a href="http://www.cs.berkeley.edu/~alig/">Ali Ghodsi</a> for helping me tease out the differences between these properties.</p>
 
@@ -1139,6 +1293,10 @@ why you&rsquo;re using SDN in the first place.</p>
     <li class="nav-header">Recent Posts</li>
     
       <li class="post">
+        <a href="/blog/2014/12/08/half-baked-idea-how-often-do-failure-detectors-falsely-accuse/">Half-baked idea: Is asynchrony really that bad? Or: how often do failure detectors falsely accuse?</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/11/30/half-baked-idea-automatically-marking-defer-tags/">Half-Baked Idea: Automatically Marking Deferred Javascript</a>
       </li>
     
@@ -1152,10 +1310,6 @@ why you&rsquo;re using SDN in the first place.</p>
     
       <li class="post">
         <a href="/blog/2014/10/01/performance-modeling-for-sdn/">Performance Modeling for Network Control Plane Systems</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/04/29/is-academia-a-good-place-to-build-real-software/">Is Academia A Good Place To Build Real Software?</a>
       </li>
     
   </ul>
