@@ -13,10 +13,11 @@ I recently came across a [statement](http://aphyr.com/posts/285-call-me-maybe-ri
 
 This statement seems to imply that distributed systems are "equivalent"
 to parallel (single-machine) computing systems, for the following reason: partitions,
-which occur in a network but don't really occur on a single chip, appear to be the key
+which occur in a network but don't really occur on a single chip [0], appear to be the key
 distinguishing property of distributed systems. But if partitions are just a
 special case of concurrency, then there shouldn't be any fundamental reasons
-why algorithms for multicore chips wouldn't be perfectly suitable for solving all the
+why algorithms for multicore computational models
+(such as [PRAM](http://en.wikipedia.org/wiki/Parallel_random-access_machine)) wouldn't be perfectly suitable for solving all the
 problems we might encounter in a distributed setting.
 We know this to be false,
 so I've been trying to puzzle out precisely what
@@ -64,7 +65,7 @@ for them to correctly process those concurrent writes. Amending Aphyr's statemen
 > "Network partitions are just really big windows of asynchrony."
 
 Does this amendment resolve our quandary? Someone could
-rightly point out that because partitions don't really occur within a single chip,
+rightly point out that because partitions don't really occur within a single chip [0],
 parallel systems can effectively provide guarantees on how long message
 delays can last [3], whereas partitions in distributed systems may last
 arbitrarily long. Some algorithms designed for parallel computers might
@@ -129,6 +130,15 @@ about how our systems behave, stronger failure modes seem like an
 excellent place to look.
 
 ----
+
+[0] After I posted this blog post, Aphyr and others informed me that some of
+the latest multicore chips are in fact facing partial failures between cores
+due to voltage
+issues. This is quite interesting, because as multicore chips grow in transistor density, the
+distinction between parallel computing and distributed computing is becoming
+more and more blurred: modern multicore chips face both unbounded
+asynchrony (from the growing gap between levels of the memory hierarchy) and partial failure (from voltage
+issues).
 
 [1] Thanks to [Ali Ghodsi](http://www.cs.berkeley.edu/~alig/) for helping me tease out the differences between these properties.
 
