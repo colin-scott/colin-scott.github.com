@@ -4,7 +4,7 @@
   <title><![CDATA[Rest for the Wicked]]></title>
   <link href="http://colin-scott.github.io/atom.xml" rel="self"/>
   <link href="http://colin-scott.github.io/"/>
-  <updated>2015-10-07T15:51:27-07:00</updated>
+  <updated>2015-10-07T15:56:46-07:00</updated>
   <id>http://colin-scott.github.io/</id>
   <author>
     <name><![CDATA[Colin Scott]]></name>
@@ -162,9 +162,9 @@ the Raft <a href="https://raft.github.io/">implementation page</a>; it supports 
 replication, membership changes, and log compaction. akka-raft has existing
 unit and integration tests, but it has not yet been deployed in production.</p>
 
-<p>UPDATE: Konrad asked me to include a short note, and I&rsquo;m glad to oblidge:</p>
+<p>UPDATE: Konrad asked me to include a short note, and I&rsquo;m glad to oblige:</p>
 
-<blockquote><p>akka-raft is not an actual supported Akka module, but a pet project of Konrad&rsquo;s. The Akka modules themselves are much more rigorously tested before release.</p></blockquote>
+<blockquote><p>akka-raft is not an officially supported Akka module, but rather just a pet project of Konrad&rsquo;s. The Akka modules themselves are much more rigorously tested before release.</p></blockquote>
 
 <p>For our fuzz tests we set up a small 4-node cluster (quorum size=3). akka-raft
 uses TCP as its default transport protocol, so we
