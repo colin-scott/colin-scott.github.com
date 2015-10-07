@@ -277,8 +277,8 @@ all machines.
 According to the Raft paper, followers should *reject* `AppendEntries` requests from leaders that are
 behind, i.e. `prevLogIndex` and `prevLogTerm` for the `AppendEntries` message are
 behind what the follower has
-in its log. The leader should continue deleting its last log
-entry until the followers stop rejecting its `AppendEntries` attempts.
+in its log. The leader should continue decrementing its `nextIndex` hashmap
+until the followers stop rejecting its `AppendEntries` attempts.
 
 This should have happened in akka-raft too, except for one hiccup:
 akka-raft decided to adopt 0-indexed logs, rather than 1-indexed logs as the
@@ -302,10 +302,11 @@ had a log that was irrecoverably inconsistent with the logs of previous leaders.
 Leaders are supposed to
 commit log entries to their state machine when they knows that a quorum (N/2+1) of
 the processes in the cluster have that entry replicated in their logs.
-akka-raft had a bug where it computed the highest replicated log index incorrectly: it
-computed the *mode* instead of the *median* of the highest replicated entry
-(from its `matchIndex` hashmap).
-This caused the leader to commit entries too early, before a quorum
+akka-raft had a bug where it computed the highest replicated log index incorrectly.
+First it sorted the values of `matchIndex` (which denote the highest log entry index
+known to be replicated on each peer). But rather than computing the *median*
+(or more specifically, the N/2+1'st) of the sorted entries, it computed the *mode* of the sorted
+entries. This caused the leader to commit entries too early, before a quorum
 actually had that entry replicated. In our fuzz test, message delays allowed another leader to become elected, but it did not have all
 committed entries in its log due to the previously leader committing too soon.
 
