@@ -434,8 +434,8 @@ all machines.</p>
 <p>According to the Raft paper, followers should <em>reject</em> <code>AppendEntries</code> requests from leaders that are
 behind, i.e. <code>prevLogIndex</code> and <code>prevLogTerm</code> for the <code>AppendEntries</code> message are
 behind what the follower has
-in its log. The leader should continue deleting its last log
-entry until the followers stop rejecting its <code>AppendEntries</code> attempts.</p>
+in its log. The leader should continue decrementing its <code>nextIndex</code> hashmap
+until the followers stop rejecting its <code>AppendEntries</code> attempts.</p>
 
 <p>This should have happened in akka-raft too, except for one hiccup:
 akka-raft decided to adopt 0-indexed logs, rather than 1-indexed logs as the
@@ -462,10 +462,11 @@ had a log that was irrecoverably inconsistent with the logs of previous leaders.
 <p>Leaders are supposed to
 commit log entries to their state machine when they knows that a quorum (N/2+1) of
 the processes in the cluster have that entry replicated in their logs.
-akka-raft had a bug where it computed the highest replicated log index incorrectly: it
-computed the <em>mode</em> instead of the <em>median</em> of the highest replicated entry
-(from its <code>matchIndex</code> hashmap).
-This caused the leader to commit entries too early, before a quorum
+akka-raft had a bug where it computed the highest replicated log index incorrectly.
+First it sorted the values of <code>matchIndex</code> (which denote the highest log entry index
+known to be replicated on each peer). But rather than computing the <em>median</em>
+(or more specifically, the N/2+1&#8217;st) of the sorted entries, it computed the <em>mode</em> of the sorted
+entries. This caused the leader to commit entries too early, before a quorum
 actually had that entry replicated. In our fuzz test, message delays allowed another leader to become elected, but it did not have all
 committed entries in its log due to the previously leader committing too soon.</p>
 
