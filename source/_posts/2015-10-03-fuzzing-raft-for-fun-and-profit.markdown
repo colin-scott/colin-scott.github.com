@@ -142,6 +142,10 @@ the Raft [implementation page](https://raft.github.io/); it supports log
 replication, membership changes, and log compaction. akka-raft has existing
 unit and integration tests, but it has not yet been deployed in production.
 
+UPDATE: Konrad asked me to include a short note, and I'm glad to oblige:
+
+> akka-raft is not an officially supported Akka module, but rather just a pet project of Konrad's. The Akka modules themselves are much more rigorously tested before release.
+
 For our fuzz tests we set up a small 4-node cluster (quorum size=3). akka-raft
 uses TCP as its default transport protocol, so we
 configure [DEMi](https://github.com/NetSys/demi) to deliver
