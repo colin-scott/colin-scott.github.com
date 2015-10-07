@@ -129,6 +129,431 @@
       
   <header class="page-header">
     
+      <h1 class="entry-title"><a href="/blog/2015/10/07/fuzzing-raft-for-fun-and-profit/">Fuzzing Raft for Fun and Publication</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-10-07T16:19:35-07:00" pubdate data-updated="true">Oct 7<span>th</span>, 2015</time>
+        
+         | <a href="/blog/2015/10/07/fuzzing-raft-for-fun-and-profit/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Research on distributed systems is often motivated by some variation of the following:</p>
+
+<blockquote><p> Developers of distributed systems face notoriously difficult challenges, such as concurrency, asynchrony, and partial failure.</p></blockquote>
+
+<p>That statement seems convincing enough, but it&rsquo;s rather abstract. In this post
+we&rsquo;ll gain a concrete understanding of what makes distribution so challenging,
+by describing correctness bugs we found in an <a href="https://github.com/ktoso/akka-raft">implementation</a> of the <a href="http://ramcloud.stanford.edu/raft.pdf">Raft consensus protocol</a>.</p>
+
+<p>Raft is an interesting example because its authors designed it to be
+understandable and straightforward to implement. As we&rsquo;ll see, implementing even the relatively
+straightforward Raft spec correctly requires developers to deal with many difficult-to-anticipate
+issues.</p>
+
+<h3>Fuzz testing setup</h3>
+
+<p>To find bugs we&rsquo;re going to employ fuzz testing. Fuzz tests are nice because
+they help us exercise situations that developers don&rsquo;t anticipate
+with unit or integration tests. In a distributed environment,
+semi-automated testing techniques such as fuzzing are especially useful, since the number of possible
+event orderings a system might encounter grows exponentially with the number
+of events (e.g. failures, message deliveries)&mdash;far too many cases for developers to reasonably cover with
+hand-written tests.</p>
+
+<p>Fuzz testing generally requires two ingredients:</p>
+
+<ol>
+<li> Assertions to check.</li>
+<li> A specification of what inputs the fuzzer should inject into the system.</li>
+</ol>
+
+
+<h4>Assertions</h4>
+
+<p>The Raft protocol already has a set of nicely defined safety
+conditions, which we&rsquo;ll use as our assertions.</p>
+
+<div class="row">
+  <div class="span1">
+  </div>
+
+  <div class="span5">
+    <img src="http://www.eecs.berkeley.edu/~rcs/research/raft_invariants.png"
+    alt="Raft Invariants" width=100%>
+  </div>
+
+  <div class="span5">
+<p>
+Figure 3 from the <a href="http://ramcloud.stanford.edu/raft.pdf">Raft paper</a> (copied left) shows Raft&#8217;s key invariants.
+We use these invariants as our assertions. Each assertion should hold at
+any point in Raft&#8217;s execution.
+</p>
+
+<p>
+For good measure, we also add in one additional assertion:
+no Raft process should crash due to an uncaught exception.
+</p>
+
+<p>
+We&#8217;ll check these invariants by periodically halting the fuzz test and
+inspecting the internal state of each Raft process. If any of the assertions
+ever fails, we&#8217;ve found a bug.
+</p>
+  </div>
+</div>
+
+
+<p></br></p>
+
+<h4>Input generation</h4>
+
+<p>The trickier part is specifying what inputs the fuzzer should inject.
+Generally speaking, inputs are anything processed by the system, yet created outside the control of
+the system. In the case of distributed systems there are a few sources of
+inputs:</p>
+
+<ul>
+<li>The network determines when messages are delivered.</li>
+<li>Hardware may fail, and processes may (re)join the system at random points.</li>
+<li>Processes outside the system (e.g. clients) may send messages
+to processes within the system.</li>
+</ul>
+
+
+<p>To generate the last two types of inputs, we specify a function for creating random external messages (in the case of Raft: client commands)
+as well as probabilities for how often each event type (external message sends, failures, recoveries) should be injected.</p>
+
+<p>We gain control over the network by <a href="https://github.com/NetSys/demi">interposing</a> on the distributed system&rsquo;s RPC layer, using <a href="https://en.wikipedia.org/wiki/AspectJ">AspectJ</a>. For now, we target a
+specific RPC system: <a href="http://akka.io/">Akka</a>. Akka is ideal because it provides
+a narrow, general API that operates at a high level abstraction
+based around the <a href="https://en.wikipedia.org/wiki/Actor_model">actor model</a>.</p>
+
+<p>Our interposition essentially allows us to play god: we get to choose exactly when each
+RPC message sent by the distributed system is delivered. We can delay, reorder, or drop any message the
+distributed system tries to send. The basic architecture of our test harness
+(which we call <a href="https://github.com/NetSys/demi">DEMi</a>) is shown below:</p>
+
+<div class="row">
+  <div class="span1">
+  </div>
+
+  <div class="span5">
+<p>
+Every time a process sends an RPC message, the Test Harness intercepts it and places
+it into a buffer. The Test Coordinator later decides when to deliver that message to the recipient.
+In a fully asynchronous network, the Test Coordinator can arbitrarily delay
+and reorder messages.
+</p>
+
+<p>
+The Test Coordinator also injects external events (external message sends, failures, recoveries)
+at random according to the probability weights given by the fuzz test
+specification.
+</p>
+  </div>
+
+  <div class="span6">
+    <img src="http://www.eecs.berkeley.edu/~rcs/research/test_infrastructure.png" alt="Test Harness" width=100%>
+  </div>
+</div>
+
+
+<p>Interposing at the RPC layer has a few advantages over interposing at a
+lower layer (e.g. the network layer, a la <a href="https://aphyr.com/tags/jepsen">Jepsen</a>).
+Most importantly, we get fine-grained control over when each individual
+(non-segmented) message is delivered. In contrast, iptables is a much more blunt tool: it only allow the tester
+to drop or delay all packets between a given pair of processes [1].</p>
+
+<p>Targeting applications built on Akka gives us one other
+advantage: Akka provides a <a href="http://doc.akka.io/docs/akka/2.4.0/scala/scheduler.html">timer API</a> that obviates the need for application
+developers to read directly from the system clock. Timers are a crucial part of distributed systems,
+since they are used to detect failures. In Akka, timers are modeled
+as messages, to be delivered to the process that set the timer at a later
+point in the execution. Rather than waiting for the wall-clock time for each
+timer to expire, we can deliver it right away, without the application
+noticing any difference.</p>
+
+<h3>Target implementation: akka-raft</h3>
+
+<p>The Raft implementation we target is <a href="https://github.com/ktoso/akka-raft">akka-raft</a>. akka-raft is written by one of the
+core Akka developers, <a href="https://github.com/ktoso">Konrad Malawski</a>. akka-raft is fully featured according to
+the Raft <a href="https://raft.github.io/">implementation page</a>; it supports log
+replication, membership changes, and log compaction. akka-raft has existing
+unit and integration tests, but it has not yet been deployed in production.</p>
+
+<p>For our fuzz tests we set up a small 4-node cluster (quorum size=3). akka-raft
+uses TCP as its default transport protocol, so we
+configure <a href="https://github.com/NetSys/demi">DEMi</a> to deliver
+pending messages one-at-a-time in a semi-random order that obeys FIFO order
+between any pair of processes. We also tell DEMi to inject a given number of client
+commands (as external messages placed into the pending message buffer), and
+check the Raft invariants at a fixed interval throughout the execution. We do
+not yet exercise auxiliary features of akka-raft, such as log compaction or
+cluster membership changes.</p>
+
+<h3>Bug we found</h3>
+
+<p>For all of the bugs we found below, we first minimized the faulty execution
+before debugging the root cause [2]. With the minimized execution in hand,
+we walked through the sequence of message deliveries in the
+minimized execution one at
+a time, noting the current state of the process receiving the message. Based on
+our knowledge of the way Raft is supposed to work, we found the places in
+the execution that deviated from our understanding of correct behavior.
+We then examined the akka-raft code to understand why it deviated, and came up
+with a fix. We submitted all of our fixes as pull requests.</p>
+
+<p>A few of these root causes had already been pointed out
+by <a href="https://github.com/schuster">Jonathan Schuster</a> through a manual audit of the code, but
+none of them had been verified with tests or fixed before we ran our fuzz
+tests.</p>
+
+<p>On with the results!</p>
+
+<h4><a href="https://github.com/ktoso/akka-raft/issues/45">raft-45</a>: Candidates accept duplicate votes from the same election term.</h4>
+
+<p>Raft is specified as a state machine with three states: <code>Follower</code>, <code>Candidate</code>,
+and <code>Leader</code>. Candidates attempt to get themselves elected as leader by
+soliciting a quorum of votes from their peers in a given election term (epoch).</p>
+
+<p>In one of our early fuzz runs, we found a violation of &lsquo;Leader Safety&rsquo;, i.e. two
+processes believed they were leader in the same election term. This is a bad
+situation for Raft to be in, since the leaders may overwrite each other&rsquo;s log
+entries, thereby violating the key linearizability guarantee that Raft is supposed to
+provide.</p>
+
+<p>The root cause here was that akka-raft&rsquo;s candidate state did not detect
+duplicate votes from the same follower in the same election term.
+(A follower might resend votes because it believed that an earlier vote was
+dropped by the network). Upon receiving the duplicate vote, the candidate
+counts it as a new vote and steps up to leader before it actually
+achieved a quorum of votes.</p>
+
+<h4><a href="https://github.com/ktoso/akka-raft/issues/46">raft-46</a>: Processes neglect to ignore certain votes from previous terms.</h4>
+
+<p>After fixing the previous bug, we found another execution where two leaders
+were elected in the same term.</p>
+
+<p>In Raft, processes attach an &lsquo;election term&rsquo; number to all messages they send.
+Receiving processes are supposed to ignore any messages that contain an
+election term that is lower than what they believe is the current term.</p>
+
+<div class="row">
+  <div class="span1">
+  </div>
+
+  <div class="span4">
+    <img src="http://www.eecs.berkeley.edu/~rcs/research/delayed_term.jpg" alt="Delayed Term" height="50" id="myheight">
+  </div>
+
+  <div class="span6">
+<p>
+akka-raft properly ignored lagging term numbers for some, but not all message
+types. DEMi delayed the delivery of messages from previous
+terms and uncovered a case where a candidate incorrectly accepted a vote message from
+a previous election term.
+</p>
+  </div>
+</div>
+
+
+<h4><a href="https://github.com/ktoso/akka-raft/issues/56">raft-56</a>: Processes forget who they voted for.</h4>
+
+<p>akka-raft is written as an <a href="http://doc.akka.io/docs/akka/snapshot/scala/fsm.html">FSM</a>. When
+making a state transition, FSM processes specify both which state
+they want to transition to, and which instance variables they want to keep
+once they have transitioned.</p>
+
+<div class="row">
+  <div class="span1">
+  </div>
+
+  <div class="span6">
+    <img src="http://www.eecs.berkeley.edu/~rcs/research/raft_fsm.png" alt="Raft FSM" width=100%>
+  </div>
+
+  <div class="span5">
+<p>
+All of the state transitions for akka-raft were correct except
+one: when a candidate
+steps down to follower (e.g., because it receives an <code>AppendEntries</code> message,
+indicating that there is another leader in the cluster), it
+<i>forgets</i> which process it previously voted for in that term. Now, when another
+process requests a vote from it in the same term, it will vote again but this
+time for a different process than it previously voted for, allowing
+two leaders to be elected.
+</p>
+  </div>
+</div>
+
+
+<h4><a href="https://github.com/ktoso/akka-raft/issues/58">raft-58a</a>: Pending client commands delivered before initialization occurs.</h4>
+
+<p>After ironing out leader election issues, we started finding other issues. In
+one of our fuzz runs, we found that a leader process threw an assertion error.</p>
+
+<p>When an akka-raft candidate first makes the state transition to leader, it does not
+immediately initialize its state (the <code>nextIndex</code> and <code>matchIndex</code> variables).
+It instead sends a message to itself,
+and initializes its state when it receives that self-message.</p>
+
+<p>Through fuzz testing, we found that it is possible that the candidate could have pending <code>ClientCommand</code> messages
+in its mailbox, placed there <i>before</i> the candidate transitioned to leader
+and sent itself the initialization message.
+Once in the leader state, the Akka runtime will first deliver the <code>ClientCommand</code> message. Upon processing the <code>ClientCommand</code>
+message the leader tries to replicate it to the rest of the cluster, and updates its
+<code>nextIndex</code> hashmap.
+Next, when the Akka runtime delivers the initialization self-message, it will <em>overwrite</em> the
+value of <code>nextIndex</code>. When it reads from <code>nextIndex</code> later, it&rsquo;s possible for
+it to throw an assertion error because the <code>nextIndex</code> values are
+inconcistent with the contents of the leader&rsquo;s log.</p>
+
+<h4><a href="https://github.com/ktoso/akka-raft/issues/58">raft-58b</a>: Ambiguous log indexing.</h4>
+
+<p>In one of our fuzz tests, we found a case where the &lsquo;Log Matching&rsquo;
+invariant was violated, i.e. log entries did not appear in the same order on
+all machines.</p>
+
+<p>According to the Raft paper, followers should <em>reject</em> <code>AppendEntries</code> requests from leaders that are
+behind, i.e. <code>prevLogIndex</code> and <code>prevLogTerm</code> for the <code>AppendEntries</code> message are
+behind what the follower has
+in its log. The leader should continue deleting its last log
+entry until the followers stop rejecting its <code>AppendEntries</code> attempts.</p>
+
+<p>This should have happened in akka-raft too, except for one hiccup:
+akka-raft decided to adopt 0-indexed logs, rather than 1-indexed logs as the
+paper suggests. This creates a problem:
+the initial value of <code>prevLogIndex</code> is ambiguous:</p>
+
+<ul>
+<li>followers can&rsquo;t distinguish between an <code>AppendEntries</code> for an empty log (<code>prevLogIndex</code> == 0)</li>
+<li>an <code>AppendEntries</code> for the leader&rsquo;s 1st command (<code>prevLogIndex</code> == 0), and</li>
+<li>an <code>AppendEntries</code> for the leader&rsquo;s 2nd command (<code>prevLogIndex</code> == 1 &ndash; 1 == 0).</li>
+</ul>
+
+
+<p>The last two cases need to be distinguishable.
+Otherwise followers won&rsquo;t be able to reject inconsistent logs. This corner would have
+been hard to anticipate; at first glance it seems fine to adopt the convention
+that logs should be 0-indexed instead of 1-indexed.</p>
+
+<h4><a href="https://github.com/ktoso/akka-raft/issues/42">raft-42</a>: Quorum computed incorrectly.</h4>
+
+<p>We also found a fuzz test that ended in a violation of the &lsquo;Leader Completeness&rsquo; invariant, i.e. a newly elected leader
+had a log that was irrecoverably inconsistent with the logs of previous leaders.</p>
+
+<p>Leaders are supposed to
+commit log entries to their state machine when they knows that a quorum (N/2+1) of
+the processes in the cluster have that entry replicated in their logs.
+akka-raft had a bug where it computed the highest replicated log index incorrectly: it
+computed the <em>mode</em> instead of the <em>median</em> of the highest replicated entry
+(from its <code>matchIndex</code> hashmap).
+This caused the leader to commit entries too early, before a quorum
+actually had that entry replicated. In our fuzz test, message delays allowed another leader to become elected, but it did not have all
+committed entries in its log due to the previously leader committing too soon.</p>
+
+<h4><a href="https://github.com/ktoso/akka-raft/issues/62">raft-62</a>: Crash-recovery not yet supported, yet inadvertently triggerable.</h4>
+
+<p>Through fuzz testing I found one other case where two leaders became elected in
+the same term.</p>
+
+<p>The Raft protocol assumes a crash-recovery failure model &mdash; that is, it allows
+for the possibility that crashed nodes will rejoin the cluster (with non-volatile state
+intact).</p>
+
+<p>The current version of akka-raft does does not write anything to disk
+(although the akka-raft developers intend to support persistence soon).
+That&rsquo;s actually fine &mdash; it just means that akka-raft currently assumes a crash-stop failure
+model, where crashed nodes are never allowed to come back.</p>
+
+<p>The Akka runtime, however, has a <a href="http://doc.akka.io/docs/akka/snapshot/scala/fault-tolerance.html">default
+behavior</a> that doesn&rsquo;t play nicely
+with akka-raft&rsquo;s crash-stop failure assumption: it automatically restarts any process that throws an exception.
+When the process restarts, all its state is reinitialized.</p>
+
+<p>If for any reason, a process throws an exception after it has voted for
+another candidate, it will later rejoin the cluster, having forgotten who it had
+voted for (since all state is volatile). Similar to <a href="https://github.com/ktoso/akka-raft/issues/56">raft-56</a>,
+this caused two leaders to be elected in our fuzz test.</p>
+
+<h4><a href="https://github.com/ktoso/akka-raft/issues/66">raft-66</a>: Followers unnecessarily overwrite log entries.</h4>
+
+<p>The last issue I found is only possible to trigger if the underlying
+transport protocol is UDP, since it requires reorderings of messages between
+the same source, destination pair. The akka-raft developers say they don&rsquo;t currently
+support UDP, but it&rsquo;s on their radar.</p>
+
+<p>The invariant violation here was a violation of the &lsquo;Leader Completeness&rsquo; safety property, where a leader is
+elected that doesn&rsquo;t have all of the needed log entries.</p>
+
+<p><img src="http://www.eecs.berkeley.edu/~rcs/research/UDP_bug.jpg" alt="Lamport Time Diagram" width=60%></p>
+
+<p>Leaders replicate uncommitted <code>ClientCommands</code> to the rest of the cluster in batches.
+Suppose a follower with an empty log receives an <code>AppendEntries</code> containing
+two entries. The follower appends these to its log.</p>
+
+<p>Then the follower subsequently receives an <code>AppendEntries</code> containing only the
+first of the previous two entries. (This message was delayed, as shown in the
+Lamport Time Diagram). The follower will inadvertently delete the second entry from its log.</p>
+
+<p>This is not just a performance issue: after receiving an ACK from the follower, the leader is under the impression that the
+follower has two entries in its log. The leader may have decided to commit both
+entries if a quorum was achieved. If another leader becomes elected, it will not necessarily have
+both committed entries in its log as it should.</p>
+
+<h3>Conclusion</h3>
+
+<p>The wide variety of bugs we found gets me really excited about how useful our
+<a href="https://github.com/NetSys/demi">fuzzing and minimization tool</a> is turning out to be. The development toolchain for
+distributed systems is seriously deficient, and I hope that testing techniques like
+this see more widespread adoption in the future.</p>
+
+<p>I left many details of our approach out of this post for brevity&rsquo;s sake,
+particularly a description of my favorite part: how DEMi minimizes the faulty executions
+it finds to make them easier to understand. Check
+out our <a href="http://www.eecs.berkeley.edu/~rcs/research/nsdi_draft.pdf">paper draft</a> for more details!</p>
+
+<h3>Footnotes</h3>
+
+<p>[1] RPC layer interposition does come with a drawback: we&rsquo;re tied to a
+particular RPC library. It would be extremely tedious for us to adapt
+our interposition to the impressive range of systems Jepsen has been applied
+to.</p>
+
+<p>[2] How we perform this minimization is
+outside the scope of this blog post. Minimization is, in my opinion, the most
+interesting part of what we&rsquo;re doing here. Check out our
+<a href="http://www.eecs.berkeley.edu/~rcs/research/nsdi_draft.pdf">paper draft</a> for more
+information!</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header class="page-header">
+    
       <h1 class="entry-title"><a href="/blog/2014/12/08/half-baked-idea-how-often-do-failure-detectors-falsely-accuse/">Half-baked Idea: Is Asynchrony Really That Bad? or: How Often Do Failure Detectors Falsely Accuse?</a></h1>
     
     
@@ -969,318 +1394,9 @@ updates! Better yet, issue a <a href="https://github.com/colin-scott/interactive
 
     </article>
   
-  
-    <article>
-      
-  <header class="page-header">
-    
-      <h1 class="entry-title"><a href="/blog/2012/10/28/7-ways-to-deal-with-ordering-bugs-in-distributed-systems/">7 Ways to Handle Concurrency in Distributed Systems</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-10-28T17:54:00-07:00" pubdate data-updated="true">Oct 28<span>th</span>, 2012</time>
-        
-         | <a href="/blog/2012/10/28/7-ways-to-deal-with-ordering-bugs-in-distributed-systems/#disqus_thread">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><em>tl;dr: handling event ordering correctly in distributed systems is tricky.
-In this post I cover 7 approaches to coping with concurrency.</em></p>
-
-<p>Robust distributed systems are notoriously difficult to build. The difficulty
-arises from two properties in particular:</p>
-
-<ul>
-<li><p>Limited knowledge: each node knows its own state, and it knows what state
-the other nodes were in recently, but it can&rsquo;t know their current state.</p></li>
-<li><p>(Partial) failures: individual nodes can fail at any time, and the network can delay or drop
-messages arbitrarily.</p></li>
-</ul>
-
-
-<p>Why are these properties difficult to grapple with? Suppose you&rsquo;re writing
-code for a single node. You&rsquo;re deep in a nested conditional statement, and you
-need to deal with a message arrival. How do you react? What if the message
-you&rsquo;re seeing was actually delayed by the network and is no longer relevant? What if some of the nodes you need to coordinate with have
-failed, but you aren&rsquo;t aware of it yet? The set of possible event sequences you need to reason about is huge,
-and it&rsquo;s all too easy to forget about the one nasty corner case that will
-eventually bring your system to a screeching halt.</p>
-
-<p>To make the discussion more concrete, let&rsquo;s look at an example.</p>
-
-<p><img src="http://www.eecs.berkeley.edu/~rcs/research/example_bug.png"
-alt="Floodlight bug" width=100%></p>
-
-<p>The figure above depicts a race condition [1] in
-<a href="http://floodlight.openflowhub.org/">Floodlight</a>, a distributed controller for
-software-defined networks. With Floodlight, switches maintain one hot
-connection to a master controller and
-one or more cold connections to replica controllers. The master holds the
-authority to modify the configuration of the switches, while the other
-controllers are in slave mode and do not perform any changes to the
-switch configurations unless they detect that the master has crashed [2].</p>
-
-<p>The race condition is triggered when a link fails (E1), and the switch
-attempts to notify the controllers (E2,E4) shortly after the master has
-died (E3), but before a new master has been selected (E6). In this case,
-all live controllers are in
-the slave role and will not take responsibility for updating the switch
-flow table (E5). At some point, heartbeat messages time out and one of the
-slaves
-elevates itself to the master role (E6). The new master will proceed to
-manage
-the switch, but without ever clearing the routing entries for
-the failed link (resulting in a persistent blackhole) [3].</p>
-
-<p>If we take a step back, we see that there are two problems involved:
-leader election (&ldquo;Who is the master at any point in time?&rdquo;), and
-replication (&ldquo;How should the backups behave?&rdquo;). Let&rsquo;s assume that leader
-election is handled by a separate consensus algorithm (<em>e.g.</em>
-Paxos), and focus our attention on replication.</p>
-
-<!-- And atomic commit? -->
-
-
-<p>Now that we have a concrete example to think about, let&rsquo;s go over a few
-solutions this problem. The first four share the same philosophy: <em>&ldquo;get
-the ordering right&rdquo;</em>.</p>
-
-<h3>Take it case-by-case</h3>
-
-<p>The straightforward fix here is to add a conditional statement for this event
-ordering: if you&rsquo;re a slave, and the next message is a link failure
-notification, store the notification in memory in case you become master
-later.</p>
-
-<p>This fix seems easy in retrospect. But recall how the bug came about in the
-first place: the programmer had some set of event orderings in mind when
-writing the code, but didn&rsquo;t implement one corner case. How do we know
-there isn&rsquo;t another race condition lurking somewhere else in the code? [4]</p>
-
-<p>The number of event orderings you need to consider in a distributed system is
-truly huge; it scales combinatorially with the number of nodes you&rsquo;re
-communicating with. For the rest of this post, let&rsquo;s see if we can avoid the
-need to reason on a case-by-case basis altogether.</p>
-
-<h3>Replicate the computation</h3>
-
-<p>Consider a system consisting of only one node. In this world,
-there is a single, global order (with no race conditions)!</p>
-
-<p>How can we obtain a global event order, yet still achieve fault tolerance? One way [5] is to have the backup nodes mimic every step of the master node: forward all
-inputs to the master, have the master choose a serial order for those events, issue the appriopriate commands to the switches, and replicate the decision to the backups [6]. The key here is that each
-backup should execute the computation in the exact same order as the master.</p>
-
-<p>For the Floodlight bug, the backup would still need to hold the link failure
-message in memory until it detects that the master has crashed. But we&rsquo;ve
-gained a powerful guarantee over the previous approach: when the backup takes
-over for the master, it will be in a up-to-date state, and know exactly what
-commands it needs to send to the switches to get them into a correct
-configuration.</p>
-
-<h3>Make your event handlers transactional</h3>
-
-<p>Transactions allow us to make a group of operations appear either as if they
-happened simultaneously, or not at all. This is a powerful idea!</p>
-
-<p>How could transactions help us here? Suppose we did the following: whenever a
-message arrives, find the event handler
-for that message, wrap it in a transaction, run the event handler, and hand
-the result of the transaction to the master controller. The master
-decides on a global order, checks whether any concurrent transactions
-conflict with each other (and aborts one of them if they do), updates the switches, sends the
-serialized transactions to the backups, and waits for ACKs before logging
-a commit message.</p>
-
-<p>This is very similar to the previous solution, but it gives us two benefits over the previous approach:</p>
-
-<ul>
-<li>We can potentially handle more events in parallel; most of the transactions will
-not conflict with each other, and we can simply abort and retry the ones
-that do.</li>
-<li>We can now roll back operations. Suppose a network operator issues a
-policy change to the controller, but realizes that she made a mistake.
-No problem &mdash; she can simply roll back the previous transaction and start
-again where she began.</li>
-</ul>
-
-
-<p>Compared to the first approach, this is a significant improvement! Each
-event is handled in isolation from the other events, so there&rsquo;s need to
-reason about event interleavings; if a conflicting transaction was
-committed before we get to commit, just abort and retry!</p>
-
-<h3>Reorder events when no one will notice</h3>
-
-<p>It turns out that we can achieve even better throughput if we use a
-replication model called virtual synchrony. In short, virtual synchrony
-provides a library with three operations:</p>
-
-<ul>
-<li><tt>join()</tt> a process group</li>
-<li><tt>register()</tt> an event handler</li>
-<li><tt>send()</tt> an atomic multicast message to the rest of your process
-group.</li>
-</ul>
-
-
-<p>These primitives provide two crucial guarentees:</p>
-
-<ul>
-<li>Atomic multicast means that if <em>any</em> correct node gets the message, every live
-node will eventually get the message. That implies that if any live
-node ever gets the link failure notification, you can rest assure that
-one of your future masters will get it.</li>
-<li>The <tt>join()</tt> protocol ensures that every node always know who&rsquo;s a member of its group,
-and that everyone has the same view of who is alive
-and who is not. Failures results in a group change, but everyone will agree on the order in which the failure occured.</li>
-</ul>
-
-
-<p>With virtual synchrony, we no longer need a single master; atomic multicast
-means that there is a single order of events observed by all members of the
-group, regardless of who initiated the message. And with multiple masters, we
-aren&rsquo;t constrained by the speed of a single node.</p>
-
-<p>The <em>virtual</em> part of virtual synchrony is that when the library detects
-that two operations are not causally related to each other, it can reorder
-them in whatever way it believes most efficient. Since those operations aren&rsquo;t
-causally related, we&rsquo;re guaranteed that the final output won&rsquo;t be noticeably
-different.</p>
-
-<p>OK, let&rsquo;s move on to the final three approaches, which take a different tack
-than the first four: <em>&ldquo;avoid having to reason about event ordering
-altogether&rdquo;</em></p>
-
-<h3>Make yourself stateless</h3>
-
-<p>In a database, the &ldquo;ground truth&rdquo; is stored on disk. In a network, the &ldquo;ground
-truth&rdquo; is stored in the routing tables of the switches themselves. This
-implies that the controllers&#8217; view of the network is just soft state; we can
-always recover it simply by querying the switches for their current
-configuration!</p>
-
-<p>How does this observation relate to the Floodlight bug? Suppose we didn&rsquo;t even
-attempt to keep the backup controllers in sync with the master. Instead, just
-have them recompute the entire network configuration whenever they realize
-they need to take over for the master. Their only job in the meantime is to
-monitor the liveness of the master!</p>
-
-<p>Of course, the tradeoff here is that it may take significantly longer for the newly elected master to get up to speed.</p>
-
-<p>We can apply the same trick to avoid race conditions between concurrent events
-at the master: instead of maintaining locks between threads, just restart
-computation of the entire network configuration whenever a new event comes in.
-Race conditions don&rsquo;t happen if there is no shared state!</p>
-
-<p>Incidentally, Google&rsquo;s <a href="http://www.eecs.berkeley.edu/~rcs/research/google-onrc-slides.pdf">wide-area network
-controller</a>
-is almost entirely stateless, presumably for many of the same reasons.</p>
-
-<h3>Force yourself to be stateless</h3>
-
-<p>In the spirit stateless computation, why not write your code in a language
-that doesn&rsquo;t allow you to keep state at all? Programs written in declarative
-languages such as <a href="http://p2.berkeley.intel-research.net/">Overlog</a> have no
-explicit ordering whatsoever. Programmers simply declare rules such as &ldquo;If the
-switch has a link failure, then flush the routing entries that go over that
-link&rdquo;, and the language runtime handles the order in which the computation
-is carried out.</p>
-
-<p>With a declarative language, as the long as the same set of events is fed
-to the controller (regardless of their order), the same result will come
-out. This makes replication really easy: send inputs to all controllers,
-have each node compute the resulting configuration, and only allow the
-master node to send out commands to the switches once the computation has
-completed. The tradeoff is that without an explicit ordering.
- the performance of declarative languages is difficult to reason about.</p>
-
-<h3>Guarantee self-stabilization</h3>
-
-<p>The previous solutions were designed to always guarantee correct behavior
-despite failures of the other nodes. This final solution, my personal
-favorite, is much more optimistic.</p>
-
-<p>The idea behind self-stabilizing algorithms is to have a provable guarantee
-that no matter what configuration the system starts in, and no matter what
-failures occur, all nodes will eventually stabilize to a configuration where
-safety properties are met. This eliminates the need to worry about correct
-initialization, or detect whether the algorithm has terminated. As a nice side
-benefit, self-stabilizing algorithms are usually considerably simpler than
-their order-aware counterparts.</p>
-
-<p>What do self-stabilizing algorithms look like? Self-stabilizing algorithms are
-actually everywhere in networking &mdash; routing algorithms are the most canonical
-example.</p>
-
-<p>How would a self-stabilizing algorithm help with the Floodlight bug? The
-answer really depends on what network invariants the control application needs
-to maintain. If it&rsquo;s just to provide connectivity [7], we could simply run a
-traditional link-state algorithm: have each switch periodically send port
-status messages to the controllers, have the controllers compute shortest
-paths using Dijkstra&rsquo;s, and have the master push the appropriate updates to
-the switches. Even if there are transient failures, we&rsquo;re guaranteed that the
-network will eventually converge to a configuration with no loops and
-deadends.</p>
-
-<hr />
-
-<p>Ultimately, the best replication choice depends on your workload and
-network policies. In any case, I hope this post has convinced you that
-there&rsquo;s more than one way to skin a cat!</p>
-
-<h4>Footnotes</h4>
-
-<p>[1] Note that this issue was originally discovered by the developers of
-Floodlight. (We don&rsquo;t mean to pick on BigSwitch here; we chose this bug
-because it&rsquo;s a great example of the difficulties that come up in distributed
-systems). For more information, see line 605 of
-<a href="https://github.com/floodlight/floodlight/blob/2e9427e20ede7dc3941f8c15d2348bfcafdce237/src/main/java/net/floodlightcontroller/core/internal/Controller.java">Controller.java</a>.</p>
-
-<p>[2] This invariant is crucial to maintain. Think of the switches&#8217; routing
-tables as shared variables between threads (controllers). We need to ensure
-mutual exclusion over those shared variables, otherwise we could end up with
-internally inconsistent routing tables.</p>
-
-<p>[3] The Floodlight bug noted in [1] actually involves neglecting to clear the
-routing tables of newly connected switches, but the same flavor of race
-condition could occur for link failures. We chose to focus on link failures
-because they&rsquo;re likely to occur much more often than switch connects.</p>
-
-<p>[4] It&rsquo;s possible in some cases to use a <a href="http://www.macesystems.org/">model checker</a> to automatically find race conditions, but the runtime complexity is often intractable and very few systems do this in practice.</p>
-
-<p>[5] There are actually a handful of ways to implement state machine replication. Ours depend on a concensus algorithm to choose the master, but you could also run the concensus algorithm itself to achieve replication. There are also cheaper algorithms such as reliable broadcast. You can also get significantly better read throughput with chain replication, which doesn&rsquo;t require quorum for reads, but writes become more complicated.</p>
-
-<p>[6] We still need to maintain the invariant that only the master modifies the
-the switch configurations. Nonetheless, with state machine replication the
-backup will always know what commands need to be sent to switches if and when
-it takes over for the master.</p>
-
-<p>[7] Although if your goal is only to provide connectivity, it&rsquo;s <a href="http://networkheresy.com/2011/11/17/is-openflowsdn-good-at-forwarding/">not clear</a>
-why you&rsquo;re using SDN in the first place.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <ul class="pager">
+    
+    <li class="previous"><a href="/blog/page/2/">&larr; Older</a></li>
     
     <li><a href="/blog/archives">Blog Archives</a></li>
     
@@ -1291,6 +1407,10 @@ why you&rsquo;re using SDN in the first place.</p>
     <section class="well">
   <ul id="recent_posts" class="nav nav-list">
     <li class="nav-header">Recent Posts</li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/07/fuzzing-raft-for-fun-and-profit/">Fuzzing Raft for Fun and Publication</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2014/12/08/half-baked-idea-how-often-do-failure-detectors-falsely-accuse/">Half-baked idea: Is asynchrony really that bad? Or: how often do failure detectors falsely accuse?</a>
@@ -1306,10 +1426,6 @@ why you&rsquo;re using SDN in the first place.</p>
     
       <li class="post">
         <a href="/blog/2014/11/13/half-baked-ideas/">Half-Baked Ideas</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/10/01/performance-modeling-for-sdn/">Performance Modeling for Network Control Plane Systems</a>
       </li>
     
   </ul>
@@ -1347,7 +1463,7 @@ why you&rsquo;re using SDN in the first place.</p>
   </div>
   <footer role="contentinfo" class="page-footer"><hr>
 <p>
-  Copyright &copy; 2014 - Colin Scott -
+  Copyright &copy; 2015 - Colin Scott -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
 </p>
 
