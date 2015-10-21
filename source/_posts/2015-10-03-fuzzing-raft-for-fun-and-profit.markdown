@@ -378,7 +378,7 @@ out our [paper draft](http://www.eecs.berkeley.edu/~rcs/research/nsdi_draft.pdf)
 ### Footnotes
 
 [1] RPC layer interposition does come with a drawback: we're tied to a
-particular RPC library. It would be extremely tedious for us to adapt
+particular RPC library. It would be tedious for us to adapt
 our interposition to the impressive range of systems Jepsen has been applied
 to.
 
