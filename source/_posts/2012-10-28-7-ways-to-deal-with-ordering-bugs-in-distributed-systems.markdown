@@ -235,7 +235,7 @@ deadends.
 ---
 Ultimately, the best replication choice depends on your workload and
 network policies. In any case, I hope this post has convinced you that
-there's more than one way to skin a cat!
+there's more than viable approach to handling concurrency!
 
 #### Footnotes
 
